@@ -24,9 +24,9 @@
     - Select IDE Tools - Flash Mode: "DOUT"
     - Select IDE Tools - Flash Size: "1M (no SPIFFS)"
   ====================================================*/
-
-#define VERSION                0x06010102   // 6.1.1b
-
+// lobocobra start
+#define VERSION                0x0601010a   // 6.1.1j
+// lobocobra end
 // Location specific includes
 #include <core_version.h>                   // Arduino_Esp8266 version information (ARDUINO_ESP8266_RELEASE and ARDUINO_ESP8266_RELEASE_2_3_0)
 #include "sonoff.h"                         // Enumeration used in user_config.h
@@ -320,7 +320,27 @@ void SetDevicePower(power_t rpower, int source)
     power = (1 << devices_present) -1;
     rpower = power;
   }
-  if (Settings.flag.interlock) {     // Allow only one or no relay set
+
+ // lobocobra start
+  if (Settings.flag3.split_interlock) { // Allow only one or no relay set
+    Settings.flag.interlock = 1; // there can not be a situation where interlock is off and split interlock is on
+    uint8_t mask = 0x01;
+    uint8_t count = 0;
+    byte result1 = 0;
+    byte result2 = 0;
+    for (byte i = 0; i < devices_present; i++) {
+      if (rpower & mask) {
+        if (i <2) { result1++;}//increment if low part is ON
+        if (i >1) { result2++;}//increment if high part is ON
+      }
+       mask <<= 1; // shift the bitmask one left (1,2,4,8) to find out what is on
+    }
+    if ((result1) >1 && (result2 >1)) {power = 0; rpower = 0;} // all 4 switch are on, something is wrong, so we turn all off
+    if ((result1) >1 && (result2 <2)) {power = power & 0x0C; rpower = power;} // 1/2 are both on and 3/4 max one is on
+    if ((result1) <2 && (result2 >1)) {power = power & 0x03; rpower = power;} // 1/2 max one is on and 3/4 both are on
+  } else {
+ //lobocobra end
+  if (Settings.flag.interlock) {
     power_t mask = 1;
     uint8_t count = 0;
     for (byte i = 0; i < devices_present; i++) {
@@ -332,6 +352,7 @@ void SetDevicePower(power_t rpower, int source)
       rpower = 0;
     }
   }
+  }// lobocobra
 
   XdrvSetPower(rpower);
 
@@ -1244,7 +1265,34 @@ void ExecuteCommandPower(byte device, byte state, int source)
       blink_mask &= (POWER_MASK ^ mask);  // Clear device mask
       MqttPublishPowerBlinkState(device);
     }
-    if (Settings.flag.interlock && !interlock_mutex) {  // Clear all but masked relay
+// ---- modifications by lobocobra ----
+  if (Settings.flag3.split_interlock && !Settings.flag.interlock ) Settings.flag.interlock=1; // turn on interlock in case split_interlock is on
+  // find out if channel 1/2 or 3/4 are to be changed
+  if (device <= 2 && Settings.flag3.split_interlock ) { // channel 1/2 are now changed
+  // we are on 1/2
+    if (Settings.flag3.split_interlock && !interlock_mutex) { // Clear all but masked relay, but only if we are not already doing something
+      interlock_mutex = 1;
+        for (byte i = 0; i < 2; i++) {
+          byte imask = 0x01 << i;
+          if ((power & imask) && (mask != imask)) { ExecuteCommandPower(i +1, POWER_OFF, SRC_IGNORE); delay(50); }// example, first power is ON but the pushed button is not the first, then powerOFF the first one
+        }
+      interlock_mutex = 0; // avoid infinite loop due to recursive requests
+    }
+  } else {
+  // channel 3/4 are changed
+    if (Settings.flag3.split_interlock && !interlock_mutex) {  // only start if we are on interlock split and have no re-call
+    interlock_mutex = 1;
+      for (byte i = 2; i < devices_present; i++) {
+        byte imask = 0x01 << i;
+        if ((power & imask) && (mask != imask)) ExecuteCommandPower(i +1, POWER_OFF, SRC_IGNORE);
+      }
+      interlock_mutex = 0;
+    }
+  }
+
+    if ( Settings.flag.interlock && !interlock_mutex && !Settings.flag3.split_interlock) {  // start the old code if we are not having split activated
+// lobocobra below line needs to be commented out
+ // if (Settings.flag.interlock && !interlock_mutex) {  // original code
       interlock_mutex = 1;
       for (byte i = 0; i < devices_present; i++) {
         power_t imask = 1 << i;
@@ -1252,6 +1300,12 @@ void ExecuteCommandPower(byte device, byte state, int source)
       }
       interlock_mutex = 0;
     }
+
+// lobocobra start
+  // call the code to update the position
+  if (Settings.flag3.shuttermode) ExecutePowerUpdateShutterPos(device);
+// lobocobra end
+
     switch (state) {
     case POWER_OFF: {
       power &= (POWER_MASK ^ mask);
@@ -1489,6 +1543,9 @@ boolean MqttShowSensor()
     }
   }
   XsnsCall(FUNC_JSON_APPEND);
+// lobocobra start we want to call joson append also for xdrv
+  XdrvCall(FUNC_JSON_APPEND);
+// lobocobra end
   boolean json_data_available = (strlen(mqtt_data) - json_data_start);
   if (strstr_P(mqtt_data, PSTR(D_JSON_TEMPERATURE))) {
     snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s,\"" D_JSON_TEMPERATURE_UNIT "\":\"%c\""), mqtt_data, TempUnit());
@@ -1837,6 +1894,12 @@ void StateLoop()
         if (!pulse_timer[i]) {
 //          ExecuteCommandPower(i +1, POWER_OFF, SRC_PULSETIMER);
           ExecuteCommandPower(i +1, (POWER_ALL_OFF_PULSETIME_ON == Settings.poweronstate) ? POWER_ON : POWER_OFF, SRC_PULSETIMER);
+          //lobocobra start
+           if (Settings.flag3.split_interlock) {
+              Settings.pulse_timer[i] = round((float)Settings.shutterPosMaxDeciSec[i*2 >2]/2/10+100); //set usefull pulsetimer at 50% shutter down, in case someone push the button
+              pulse_timer[i] = 0;                                       // set count-up counter to 0
+          }
+          //lobocobra end
         }
       }
     }

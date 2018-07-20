@@ -93,8 +93,10 @@ typedef union {                            // Restricted by MISRA-C Rule 18.4 bu
     uint32_t spare27 : 1;
     uint32_t spare28 : 1;
     uint32_t spare29 : 1;
-    uint32_t spare30 : 1;
-    uint32_t spare31 : 1;
+// lobocobra start
+    uint32_t shuttermode : 1;
+    uint32_t split_interlock : 1;
+// lobocobra end
   };
 } SysBitfield3;
 
@@ -330,6 +332,14 @@ struct SYSCFG {
                                            // 800 Full - no more free locations
 
   char          rules[MAX_RULE_SETS][MAX_RULE_SIZE]; // 800 uses 512 bytes in v5.12.0m, 3 x 512 bytes in v5.14.0b
+
+//lobocobra start
+  int          shutterPosMinDeciSec[2];           // position of shutter when it is up (minimum position)   // 0 for 1/2 and 1 for 3/4
+  int          shutterPosMaxDeciSec[2];           // position of shutter when it is down (maximum position) // 0 for 1/2 and 1 for 3/4
+  int          shutterPosCurrentDeciSec[2];       // current position of shutter in second                  // 0 for 1/2 and 1 for 3/4
+  int          shutterStartDelayDeciSec[2];       // how much time the shutter motor needs to start to move Up&Down (latency) // 0 for 1/2   and 1 for 3/4
+  int          shutterLagUpwardsDeciSec[2];       // how much time the shutter need to start to go Down (latency) // 0 is for 1/2   and 1 for  3/4
+//lobocobra end
 
                                            // E00 - FFF free locations
 } Settings;
