@@ -1,13 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project version="4">
   <component name="ChangeListManager">
-    <list default="true" id="ac91f1ff-a408-4ed1-a44b-f08750ad2e07" name="Default" comment="">
-      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sonoff/_releasenotes.ino" beforeDir="false" afterPath="$PROJECT_DIR$/sonoff/_releasenotes.ino" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sonoff/settings.h" beforeDir="false" afterPath="$PROJECT_DIR$/sonoff/settings.h" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sonoff/sonoff.ino" beforeDir="false" afterPath="$PROJECT_DIR$/sonoff/sonoff.ino" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/sonoff/user_config.h" beforeDir="false" afterPath="$PROJECT_DIR$/sonoff/user_config.h" afterDir="false" />
-    </list>
+    <list default="true" id="ac91f1ff-a408-4ed1-a44b-f08750ad2e07" name="Default" comment="" />
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
     <option name="SHOW_DIALOG" value="false" />
