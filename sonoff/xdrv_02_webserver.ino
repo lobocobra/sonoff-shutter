@@ -29,6 +29,8 @@
 uint8_t *efm8bb1_update = NULL;
 #endif  // USE_RF_FLASH
 
+#define D_TASMOTA_TOKEN "Tasmota-Token"
+
 enum UploadTypes { UPL_TASMOTA, UPL_SETTINGS, UPL_EFM8BB1 };
 
 const char HTTP_HEAD[] PROGMEM =
@@ -39,7 +41,7 @@ const char HTTP_HEAD[] PROGMEM =
   "<title>{h} - {v}</title>"
 
   "<script>"
-  "var cn,x,lt;"
+  "var cn,x,lt,to,tp,pc='';"
   "cn=180;"
   "x=null;"                  // Allow for abortion
   "function eb(s){"
@@ -56,13 +58,17 @@ const char HTTP_HEAD[] PROGMEM =
     "eb('s1').value=l.innerText||l.textContent;"
     "eb('p1').focus();"
   "}"
-  "function la(p){"
-    "var a='';"
-    "if(la.arguments.length==1){"
-      "a=p;"
-      "clearTimeout(lt);"
+  "function lx(){"
+    "if(to==1){"
+      "if(tp<30){"
+        "tp++;"
+        "lt=setTimeout(lx,33);"    // Wait for token from server
+      "}else{"
+        "lt=setTimeout(la,1355);"  // Discard action and retry
+      "}"
+      "return;"
     "}"
-    "if(x!=null){x.abort();}"    // Abort if no response within 2 seconds (happens on restart 1)
+    "if(x!=null){x.abort();}"      // Abort if no response within 2 seconds (happens on restart 1)
     "x=new XMLHttpRequest();"
     "x.onreadystatechange=function(){"
       "if(x.readyState==4&&x.status==200){"
@@ -70,15 +76,32 @@ const char HTTP_HEAD[] PROGMEM =
         "eb('l1').innerHTML=s;"
       "}"
     "};"
-    "x.open('GET','ay'+a,true);"
-    "x.send();"
-    "lt=setTimeout(la,2345);"
+    "x.open('GET','ay'+pc,true);" // Async request
+    "x.setRequestHeader('" D_TASMOTA_TOKEN "',to);"
+    "x.send();"                    // Perform command if available and get updated information
+    "pc='';"
+    "lt=setTimeout(la,2345-(tp*33));"
+  "}"
+  "function la(p){"
+    "if(la.arguments.length==1){"
+      "pc='?'+p;"
+      "clearTimeout(lt);"
+    "}else{pc='';}"
+    "to=1;tp=0;"
+    "if(x!=null){x.abort();}"      // Abort if no response within 2 seconds (happens on restart 1)
+    "x=new XMLHttpRequest();"
+    "x.onreadystatechange=function(){"
+      "if(x.readyState==4&&x.status==200){to=x.getResponseHeader('" D_TASMOTA_TOKEN "');}else{to=1;}"
+    "};"
+    "x.open('GET','az',true);"     // Async request
+    "x.send();"                    // Get token from server
+    "lx();"
   "}"
   "function lb(p){"
-    "la('?d='+p);"
+    "la('d='+p);"
   "}"
   "function lc(p){"
-    "la('?t='+p);"
+    "la('c='+p);"
   "}";
 
 const char HTTP_HEAD_STYLE[] PROGMEM =
@@ -190,10 +213,6 @@ const char HTTP_BTN_RSTRT[] PROGMEM =
   "<br/><form action='rb' method='get' onsubmit='return confirm(\"" D_CONFIRM_RESTART "\");'><button class='button bred'>" D_RESTART "</button></form>";
 const char HTTP_BTN_MENU_MODULE[] PROGMEM =
   "<br/><form action='md' method='get'><button>" D_CONFIGURE_MODULE "</button></form>";
-#if defined(USE_I2C) && defined(USE_MCP230xx) && defined(USE_MCP230xx_webconfig)
-const char HTTP_BTN_MCP230XX[] PROGMEM =
-  "<br/><form action='mc' method='get'><button>" D_CONFIGURE_MCP230XX "</button></form>";
-#endif  // USE_I2C and USE_MCP230xx and USE_MCP230xx_webconfig
 #if defined(USE_TIMERS) && defined(USE_TIMERS_WEB)
 const char HTTP_BTN_MENU_TIMER[] PROGMEM =
   "<br/><form action='tm' method='get'><button>" D_CONFIGURE_TIMER "</button></form>";
@@ -208,7 +227,9 @@ const char HTTP_BTN_MENU_MQTT[] PROGMEM =
   "";
 const char HTTP_BTN_MENU4[] PROGMEM =
 #ifdef USE_KNX
+#ifdef USE_KNX_WEB_MENU
   "<br/><form action='kn' method='get'><button>" D_CONFIGURE_KNX "</button></form>"
+#endif  // USE_KNX_WEB_MENU
 #endif  // USE_KNX
   "<br/><form action='lg' method='get'><button>" D_CONFIGURE_LOGGING "</button></form>"
   "<br/><form action='co' method='get'><button>" D_CONFIGURE_OTHER "</button></form>"
@@ -317,7 +338,7 @@ const char HTTP_END[] PROGMEM =
   "</body>"
   "</html>";
 
-const char HTTP_DEVICE_CONTROL[] PROGMEM = "<td style='width:%d%%'><button onclick='la(\"?o=%d\");'>%s%s</button></td>";
+const char HTTP_DEVICE_CONTROL[] PROGMEM = "<td style='width:%d%%'><button onclick='la(\"o=%d\");'>%s%s</button></td>";
 const char HTTP_DEVICE_STATE[] PROGMEM = "%s<td style='width:%d{c}%s;font-size:%dpx'>%s</div></td>";  // {c} = %'><div style='text-align:center;font-weight:
 
 const char HDR_CTYPE_PLAIN[] PROGMEM = "text/plain";
@@ -325,6 +346,8 @@ const char HDR_CTYPE_HTML[] PROGMEM = "text/html";
 const char HDR_CTYPE_XML[] PROGMEM = "text/xml";
 const char HDR_CTYPE_JSON[] PROGMEM = "application/json";
 const char HDR_CTYPE_STREAM[] PROGMEM = "application/octet-stream";
+
+const char HDR_TASMOTA_TOKEN[] PROGMEM = D_TASMOTA_TOKEN;
 
 #define DNS_PORT 53
 enum HttpOptions {HTTP_OFF, HTTP_USER, HTTP_ADMIN, HTTP_MANAGER};
@@ -341,6 +364,7 @@ uint8_t upload_progress_dot_count;
 uint8_t config_block_count = 0;
 uint8_t config_xor_on = 0;
 uint8_t config_xor_on_set = CONFIG_FILE_XOR;
+long ajax_token = 1;
 
 // Helper function to avoid code duplication (saves 4k Flash)
 static void WebGetArg(const char* arg, char* out, size_t max)
@@ -377,15 +401,13 @@ void StartWebserver(int type, IPAddress ipweb)
       WebServer->on("/cs", HandleConsole);
       WebServer->on("/ax", HandleAjaxConsoleRefresh);
       WebServer->on("/ay", HandleAjaxStatusRefresh);
+      WebServer->on("/az", HandleToken);
       WebServer->on("/u2", HTTP_OPTIONS, HandlePreflightRequest);
       WebServer->on("/cm", HandleHttpCommand);
       WebServer->on("/rb", HandleRestart);
 #ifndef BE_MINIMAL
       WebServer->on("/cn", HandleConfiguration);
       WebServer->on("/md", HandleModuleConfiguration);
-#if defined(USE_I2C) && defined(USE_MCP230xx) && defined(USE_MCP230xx_webconfig)
-      WebServer->on("/mc", HandleMCP230xxConfiguration);
-#endif  // USE_I2C and USE_MCP230xx and USE_MCP230xx_webconfig
 #if defined(USE_TIMERS) && defined(USE_TIMERS_WEB)
       WebServer->on("/tm", HandleTimerConfiguration);
 #endif  // USE_TIMERS and USE_TIMERS_WEB
@@ -398,7 +420,9 @@ void StartWebserver(int type, IPAddress ipweb)
 #endif  // USE_DOMOTICZ
       }
 #ifdef USE_KNX
+#ifdef USE_KNX_WEB_MENU
       WebServer->on("/kn", HandleKNXConfiguration);
+#endif // USE_KNX_WEB_MENU
 #endif // USE_KNX
       WebServer->on("/lg", HandleLoggingConfiguration);
       WebServer->on("/co", HandleOtherConfiguration);
@@ -593,7 +617,7 @@ void HandleRoot()
         if (idx > 0) { page += F("</tr><tr>"); }
         for (byte j = 0; j < 4; j++) {
           idx++;
-          snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("<td style='width:25%'><button onclick='la(\"?k=%d\");'>%d</button></td>"), idx, idx);
+          snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("<td style='width:25%'><button onclick='la(\"k=%d\");'>%d</button></td>"), idx, idx);
           page += mqtt_data;
         }
       }
@@ -608,10 +632,33 @@ void HandleRoot()
   }
 }
 
+void HandleToken()
+{
+  char token[11];
+
+  ajax_token = random(2, 0x7FFFFFFF);
+  snprintf_P(token, sizeof(token), PSTR("%u"), ajax_token);
+  SetHeader();
+  WebServer->sendHeader(FPSTR(HDR_TASMOTA_TOKEN), token);
+  snprintf_P(token, sizeof(token), PSTR("%u"), random(0x7FFFFFFF));
+  WebServer->send(200, FPSTR(HDR_CTYPE_HTML), token);
+
+  const char* header_key[] = { D_TASMOTA_TOKEN };
+  WebServer->collectHeaders(header_key, 1);
+}
+
 void HandleAjaxStatusRefresh()
 {
   char svalue[80];
   char tmp[100];
+
+  if (WebServer->header(FPSTR(HDR_TASMOTA_TOKEN)).toInt() != ajax_token) {
+    snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR(D_FILE_NOT_FOUND));
+    SetHeader();
+    WebServer->send(404, FPSTR(HDR_CTYPE_PLAIN), mqtt_data);
+    return;
+  }
+  ajax_token = 1;
 
   WebGetArg("o", tmp, sizeof(tmp));
   if (strlen(tmp)) {
@@ -633,7 +680,7 @@ void HandleAjaxStatusRefresh()
     snprintf_P(svalue, sizeof(svalue), PSTR(D_CMND_DIMMER " %s"), tmp);
     ExecuteWebCommand(svalue, SRC_WEBGUI);
   }
-  WebGetArg("t", tmp, sizeof(tmp));
+  WebGetArg("c", tmp, sizeof(tmp));
   if (strlen(tmp)) {
     snprintf_P(svalue, sizeof(svalue), PSTR(D_CMND_COLORTEMPERATURE " %s"), tmp);
     ExecuteWebCommand(svalue, SRC_WEBGUI);
@@ -693,11 +740,6 @@ void HandleConfiguration()
   page.replace(F("{v}"), FPSTR(S_CONFIGURATION));
   page += FPSTR(HTTP_HEAD_STYLE);
   page += FPSTR(HTTP_BTN_MENU_MODULE);
-#if defined(USE_I2C) && defined(USE_MCP230xx) && defined(USE_MCP230xx_webconfig)
-  if (MCP230xx_Type()) {	// Configuration button will only show if MCP23008/MCP23017 was detected on I2C
-    page += FPSTR(HTTP_BTN_MCP230XX);
-  }
-#endif  // USE_I2C and USE_MCP230xx and USE_MCP230xx_webconfig
 #if defined(USE_TIMERS) && defined(USE_TIMERS_WEB)
 #ifdef USE_RULES
   page += FPSTR(HTTP_BTN_MENU_TIMER);
@@ -1136,11 +1178,6 @@ void HandleSaveSettings()
     }
     AddLog(LOG_LEVEL_INFO);
     break;
-#if defined(USE_I2C) && defined(USE_MCP230xx) && defined(USE_MCP230xx_webconfig)
-  case 8:
-    MCP230xx_SaveSettings();
-    break;
-#endif  // USE_I2C and USE_MCP230xx and USE_MCP230xx_webconfig
   case 6:
     WebGetArg("g99", tmp, sizeof(tmp));
     byte new_module = (!strlen(tmp)) ? MODULE : atoi(tmp);
@@ -1957,7 +1994,7 @@ int WebSend(char *buffer)
 /*********************************************************************************************/
 
 enum WebCommands { CMND_WEBSERVER, CMND_WEBPASSWORD, CMND_WEBLOG, CMND_WEBSEND, CMND_EMULATION };
-const char kWebCommands[] PROGMEM = D_CMND_WEBSERVER "|" D_CMND_WEBPASSWORD "|" D_CMND_WEBLOG "|"  D_CMND_WEBSEND "|" D_CMND_EMULATION ;
+const char kWebCommands[] PROGMEM = D_CMND_WEBSERVER "|" D_CMND_WEBPASSWORD "|" D_CMND_WEBLOG "|" D_CMND_WEBSEND "|" D_CMND_EMULATION ;
 const char kWebSendStatus[] PROGMEM = D_JSON_DONE "|" D_JSON_WRONG_PARAMETERS "|" D_JSON_CONNECT_FAILED "|" D_JSON_HOST_NOT_FOUND ;
 
 bool WebCommand()

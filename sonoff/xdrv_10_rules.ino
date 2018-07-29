@@ -432,6 +432,8 @@ void RulesEvery50ms()
             case 2: snprintf_P(json_event, sizeof(json_event), PSTR("{\"Time\":{\"Set\":%d}}"), GetMinutesPastMidnight()); break;
             case 3: strncpy_P(json_event, PSTR("{\"MQTT\":{\"Connected\":1}}"), sizeof(json_event)); break;
             case 4: strncpy_P(json_event, PSTR("{\"MQTT\":{\"Disconnected\":1}}"), sizeof(json_event)); break;
+            case 5: strncpy_P(json_event, PSTR("{\"WIFI\":{\"Connected\":1}}"), sizeof(json_event)); break;
+            case 6: strncpy_P(json_event, PSTR("{\"WIFI\":{\"Disconnected\":1}}"), sizeof(json_event)); break;
           }
           if (json_event[0]) {
             RulesProcessEvent(json_event);
@@ -601,24 +603,6 @@ boolean RulesCommand()
 double map_double(double x, double in_min, double in_max, double out_min, double out_max)
 {
  return (x - in_min) * (out_max - out_min) / (in_max - in_min) + out_min;
-}
-
-// Function to return a substring defined by a delimiter at an index
-char* subStr(char* dest, char* str, const char *delim, int index)
-{
-  char *act;
-  char *sub;
-  char *ptr;
-  int i;
-
-  // Since strtok consumes the first arg, make a copy
-  strncpy(dest, str, strlen(str));
-  for (i = 1, act = dest; i <= index; i++, act = NULL) {
-    sub = strtok_r(act, delim, &ptr);
-    if (sub == NULL) break;
-  }
-  sub = Trim(sub);
-  return sub;
 }
 
 /*********************************************************************************************\

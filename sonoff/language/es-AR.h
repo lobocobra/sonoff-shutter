@@ -227,7 +227,6 @@
 #define D_CONFIRM_RESTART "Confirmar Reinicio"
 
 #define D_CONFIGURE_MODULE "Configuración del Módulo"
-#define D_CONFIGURE_MCP230XX "Configuración MCP230xx"
 #define D_CONFIGURE_WIFI "Configuración WiFi"
 #define D_CONFIGURE_MQTT "Configuración MQTT"
 #define D_CONFIGURE_DOMOTICZ "Configuración Domoticz"
@@ -380,6 +379,7 @@
 // xdrv_09_timers.ino
 #define D_CONFIGURE_TIMER "Configuración Temporizadores"
 #define D_TIMER_PARAMETERS "Parámetros de Temporizadores"
+#define D_TIMER_ENABLE "Habilitar Temporizadores"
 #define D_TIMER_ARM "Activo"
 #define D_TIMER_TIME "Hora"
 #define D_TIMER_DAYS "Días"
