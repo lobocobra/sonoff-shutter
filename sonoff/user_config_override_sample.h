@@ -42,8 +42,6 @@
  *   - All parameters can be persistent changed online using commands via MQTT, WebConsole or Serial.
 \*****************************************************************************************************/
 
-/*
-Examples :
 
 // -- Master parameter control --------------------
 #undef  CFG_HOLDER
@@ -51,18 +49,19 @@ Examples :
 
 // -- Setup your own Wifi settings  ---------------
 #undef  STA_SSID1
-#define STA_SSID1         "YourSSID"             // [Ssid1] Wifi SSID
+#define STA_SSID1         "domaincats"             // [Ssid1] Wifi SSID
 
 #undef  STA_PASS1
-#define STA_PASS1         "YourWifiPassword"     // [Password1] Wifi password
+#define STA_PASS1         "gi5moc@tTT"     // [Password1] Wifi password
 
 // -- Setup your own MQTT settings  ---------------
 #undef  MQTT_HOST
-#define MQTT_HOST         "your-mqtt-server.com" // [MqttHost]
+#define MQTT_HOST         "192.168.20.90" // [MqttHost]
 
 #undef  MQTT_PORT
 #define MQTT_PORT         1883                   // [MqttPort] MQTT port (10123 on CloudMQTT)
 
+/*
 #undef  MQTT_USER
 #define MQTT_USER         "YourMqttUser"         // [MqttUser] Optional user
 

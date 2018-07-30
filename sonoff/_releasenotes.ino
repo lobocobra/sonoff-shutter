@@ -1,12 +1,12 @@
-/* 6.1.1j lobocobra added sutter & split functionalliy /driver
- *  MQTT message fixed, usage of DUAL fixed, minor bugfixing
- * Shutter adaptation of lobocobra you can use following commands
- * - shutterMinDSec1/2 (enter DeciSec = Sec*10)
- * - shutterMaxDSec1/2
- * - shutterPosDSec1/2
- * - shutterGoPercent1/2
- * - shutStartDelayDSec1/2 (enter DeciSec = Sec*10)
- * - shutLagUpwardsDSec1/2
+/*6.1.1k lobocobra added sutter & split functionalliy /driver
+ * Shutter adaptation of lobocobra you can use following commands // enter DeciSec = Sec*10
+ * - shutterMinDSec1/2      (min position to move to)
+ * - shutterMaxDSec1/2      (max position to move to)
+ * - shutterPosDSec1/2      (current position in Dsec)
+ * - shutterGoPercent1/2    (1-100%, current or move to)
+ * - shutStartDelayDSec1/2  (time your motor needs to do a movement)
+ * - shutLagUpwardsDSec1/2  (additional time your motor needs to go upwards)
+ * - ShutStdPulseTDsec1/2   (standard pulsetime to be set afer any movements)
  * - Setoption 80 enable Shutter function
  * - Setoption 81 enable Interlock Split (if set interlock will be activated on next push)
   */

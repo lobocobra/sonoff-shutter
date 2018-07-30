@@ -12,3 +12,4 @@ build
 
 ## Visual Studio Code specific ######
 .vscode
+/sonoff/user_config_override.h

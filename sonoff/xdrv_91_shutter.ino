@@ -32,17 +32,19 @@
 #define D_CMND_shutterMinDSec     "ShutterMinDSec"
 #define D_CMND_shutterMax_Sec     "ShutterMaxDSec"
 #define D_CMND_shutterGoPercent   "ShutterGoPercent"
+#define D_CMND_ShutStdPulseTDsec  "ShutStdPulseTDsec"
 #define D_SHUT_PERCENT1           "Position Shutter 1 in %"
-#define D_SHUT_PERCENT2           "Position Shutter 2 in %"
-#define D_SHUTTER1                "SHUTTER1"
-#define D_SHUTTER2                "SHUTTER2"
+#define D_SHUT_PERCENT2           "Position Shutter 2 in %"     
+#define D_SHUTTER1                "SHUTTER1"                    // used for MQTT
+#define D_SHUTTER2                "SHUTTER2"                    // used for MQTT
+
 
 /*********************************************************************************************\
    Variables
   \*********************************************************************************************/
 
-enum ShutterCommands { CMND_shutterPosDSec, CMND_shutStartDelayDSec, CMND_shutLagUpwardsDSec, CMND_shutterMinDSec, CMND_shutterMaxDSec, CMND_shutterGoPercent };
-const char kShutterCommands[] PROGMEM = D_CMND_shutterPosDSec "|" D_CMND_shutStartDelayDSec "|" D_CMND_shutLagUpwardsDSec "|" D_CMND_shutterMinDSec "|" D_CMND_shutterMax_Sec "|" D_CMND_shutterGoPercent;
+enum ShutterCommands { CMND_shutterPosDSec, CMND_shutStartDelayDSec, CMND_shutLagUpwardsDSec, CMND_shutterMinDSec, CMND_shutterMaxDSec, CMND_shutterGoPercent, CMND_ShutStdPulseTDsec };
+const char kShutterCommands[] PROGMEM = D_CMND_shutterPosDSec "|" D_CMND_shutStartDelayDSec "|" D_CMND_shutLagUpwardsDSec "|" D_CMND_shutterMinDSec "|" D_CMND_shutterMax_Sec "|" D_CMND_shutterGoPercent "|" D_CMND_ShutStdPulseTDsec;
 
 const char JSON_SHUTTER_PERCENT[] PROGMEM = "%s,\"%s\":%d";
 
@@ -62,10 +64,11 @@ void ShutterInit() {
   for (byte i = 0; i < 2; i++)  {
     //eliminate impossible values
     if ( Settings.shutterPosMaxDeciSec[i] <= 0 || Settings.shutterPosMaxDeciSec[i] >= 3000) Settings.shutterPosMaxDeciSec[i] = 150;
-    if (Settings.shutterPosMinDeciSec[i] >= round((float)Settings.shutterPosMaxDeciSec[i] / 2)  ) Settings.shutterPosMinDeciSec[i] = 0;
+    if (Settings.shutterPosMinDeciSec[i] >= round((float)Settings.shutterPosMaxDeciSec[i] / 2)  ) Settings.shutterPosMinDeciSec[i] = 0; // min should not be bigger than half of max
     if (Settings.shutterPosCurrentDeciSec[i] >= Settings.shutterPosMaxDeciSec[i] + 100) Settings.shutterPosCurrentDeciSec[i] = Settings.shutterPosMaxDeciSec[i];
     if (Settings.shutterStartDelayDeciSec[i] >= round((float)Settings.shutterPosMaxDeciSec[i] / 4)  ) Settings.shutterStartDelayDeciSec[i] = 0;
     if (Settings.shutterLagUpwardsDeciSec[i] >= round((float)Settings.shutterPosMaxDeciSec[i] / 4)  ) Settings.shutterLagUpwardsDeciSec[i] = 0;
+    if (Settings.shutterStdPulseTDsec[i] <=0 || Settings.shutterStdPulseTDsec[i] > Settings.shutterPosMaxDeciSec[i]) Settings.shutterStdPulseTDsec[i] = Settings.shutterPosMaxDeciSec[i];
   }
 }
 
@@ -162,6 +165,7 @@ boolean MqttShutterCommand()
   int command_code = GetCommandCode(command, sizeof(command), XdrvMailbox.topic, kShutterCommands);
   index = XdrvMailbox.index;
   payload = XdrvMailbox.payload;
+  ShutterInit(); // ensure that we init the values once a while, which is the case when we have commands
 
   //Serial.print("command_index:") ;Serial.print(XdrvMailbox.index) ;Serial.print(" CMND_shutterMinDSec:") ;Serial.print(CMND_shutterMinDSec) ;Serial.print(" Mailbox:") ;Serial.print(XdrvMailbox.topic) ;Serial.print(" MailboxPayload:") ;Serial.print(XdrvMailbox.payload) ;Serial.print(" command:") ;Serial.println(command) ;
   if (-1 == command_code || index <= 0 || index > 2 || index*2 > devices_present  ) { // -1 means that no command is recorded with this value OR the INDEX is out of range or we have less devices than we address
@@ -219,6 +223,14 @@ boolean MqttShutterCommand()
   else if (CMND_shutLagUpwardsDSec == command_code) {
     if (payload >= 0 && payload <= round((float)Settings.shutterPosMaxDeciSec[index - 1] / 4)  ) Settings.shutterLagUpwardsDeciSec[index - 1] = payload;
     snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterLagUpwardsDeciSec[index - 1]);
+  }
+  else if (CMND_ShutStdPulseTDsec == command_code) {
+    if (payload >= 0 && payload <= Settings.shutterPosMaxDeciSec[index - 1] ){
+      Settings.shutterStdPulseTDsec[index - 1] = payload;
+      Settings.pulse_timer[index * 2 - 2] = payload;
+      pulse_timer[index * 2 - 2] = 0;
+      }
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterStdPulseTDsec[index - 1]);
   }
   else { // no response for known command was defined, so we handle it as unknown
     serviced = false;  // Unknown command

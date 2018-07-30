@@ -25,7 +25,7 @@
     - Select IDE Tools - Flash Size: "1M (no SPIFFS)"
   ====================================================*/
 // lobocobra start
-#define VERSION                0x0601010a   // 6.1.1j
+#define VERSION                0x0601010b   // 6.1.1k
 // lobocobra end
 // Location specific includes
 #include <core_version.h>                   // Arduino_Esp8266 version information (ARDUINO_ESP8266_RELEASE and ARDUINO_ESP8266_RELEASE_2_3_0)
@@ -1906,8 +1906,10 @@ void StateLoop()
           ExecuteCommandPower(i +1, (POWER_ALL_OFF_PULSETIME_ON == Settings.poweronstate) ? POWER_ON : POWER_OFF, SRC_PULSETIMER);
           //lobocobra start
            if (Settings.flag3.split_interlock) {
-              Settings.pulse_timer[i] = round((float)Settings.shutterPosMaxDeciSec[i*2 >2]/2/10+100); //set usefull pulsetimer at 50% shutter down, in case someone push the button
-              pulse_timer[i] = 0;                                       // set count-up counter to 0
+             int PulseT; 
+             Settings.pulse_timer[i] <= 111 ? PulseT =Settings.shutterStdPulseTDsec[i*2 >2] : PulseT = round((float)Settings.shutterStdPulseTDsec[i*2 >2]/10+100) ; // convert into pulsetime
+             Settings.pulse_timer[i] = PulseT; // set Pulsetime
+             pulse_timer[i] = 0;               // set count-down counter to 0
           }
           //lobocobra end
         }

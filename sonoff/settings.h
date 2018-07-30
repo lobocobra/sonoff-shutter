@@ -336,6 +336,7 @@ struct SYSCFG {
   int          shutterPosCurrentDeciSec[2];       // current position of shutter in second                  // 0 for 1/2 and 1 for 3/4
   int          shutterStartDelayDeciSec[2];       // how much time the shutter motor needs to start to move Up&Down (latency) // 0 for 1/2   and 1 for 3/4
   int          shutterLagUpwardsDeciSec[2];       // how much time the shutter need to start to go Down (latency) // 0 is for 1/2   and 1 for  3/4
+  int          shutterStdPulseTDsec[2];           // std pulsetime to be reset to, after shutter were used
 //lobocobra end
 
                                            // E00 - FFF free locations

@@ -23,6 +23,8 @@ shutStartDelayDSec1/2 (enter DeciSec = Sec*10) : time the motor needs to start t
 => In case your shutter needs half a second to start, you can enter here the start delay (1/2 sec = 5)
 shutLagUpwardsDSec1/2 (enter DeciSec = Sec*10) : difference in Dsec the shutter needs longer UP
 => In case your shutter takes longer to go up and down, then enter here the difference. (if it takes 15sec down and 20Sec up, then enter 50)
+ShutStdPulseTDsec1/2   (standard pulsetime to be set afer any movements)
+=> Pulsetime is reset to this value of your choice when not moving
 
 Commands can be entered on MQTT, Web, button. The sonoff will figure out all the rest.
 This is only an add-on and I will probably not keep it up to date with future releases (only if it is needed for me). But I have commented what I did in the code. Search for LOBOCOBRA and you will understand my code.
