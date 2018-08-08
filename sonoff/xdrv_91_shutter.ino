@@ -244,7 +244,7 @@ boolean MqttShutterCommand()
 void ShowShutterPos(byte shutter) {
 
  //Shutter0: Position:% -15000 Position Sec: 150
- snprintf_P(log_data, sizeof(log_data), PSTR("Shutter%d: Position:%% %d Position Sec: %d "), shutter,round((float)Settings.shutterPosCurrentDeciSec[shutter-1]/ Settings.shutterPosMaxDeciSec[shutter-1]*100) , Settings.shutterPosCurrentDeciSec[shutter-1]);
+ snprintf_P(log_data, sizeof(log_data), PSTR("Shutter%d: Position%% %d Position Sec: %d "), shutter,round((float)Settings.shutterPosCurrentDeciSec[shutter-1]/ Settings.shutterPosMaxDeciSec[shutter-1]*100) , Settings.shutterPosCurrentDeciSec[shutter-1]);
  AddLog(LOG_LEVEL_INFO);
 
  
@@ -267,7 +267,7 @@ boolean Xdrv91(byte function){
       // {"Time":"2018-07-17T23:06:46","Position Shutter1 in %":49,"Position Shutter2 in %":30}
         snprintf_P(mqtt_data, sizeof(mqtt_data), JSON_SHUTTER_PERCENT, mqtt_data, D_SHUT_PERCENT1, round((float)Settings.shutterPosCurrentDeciSec[0]/ Settings.shutterPosMaxDeciSec[0]*100) ); // it does what it says (Json append), it adds it to mqtt
         if (devices_present>2 ) snprintf_P(mqtt_data, sizeof(mqtt_data), JSON_SHUTTER_PERCENT, mqtt_data, D_SHUT_PERCENT2, round((float)Settings.shutterPosCurrentDeciSec[1]/ Settings.shutterPosMaxDeciSec[1]*100) );
-        ShowShutterPos(0);
+        //ShowShutterPos(0);
         break;
       case FUNC_COMMAND:
         result = MqttShutterCommand();

@@ -1,30 +1,32 @@
-This mod currently supports following features:
-Interlock Split
+This mod currently supports following features:  
+**Interlock Split**  
 This mod splits on your CH4pro and CH4 the interlock into 2 groups of 2 buttons. It works via MQTT/Butten/Web/etc.
-To activate it you must set (Setoption81  = 1) which will set (Setoption14  = 1).
-=> to deactivate put setoption 14&81 to0
+* To activate it you must:  set (Setoption81  = 1) which will set (Setoption14  = 1).  
+* To deactivate put setoption 14 & 81 to 0
 
 Aim of this mod was to have 2 shutter operated with one CH4. Let me know if you found other use cases.
 
+**Shutter**  
+To activate it, you must : set (Setoption80 =1)  
+The aim of this mod is to operate your shutter and to keep track on the position of your shutter. You can also instruct your shutter to go to 56% and the code with figure out, which direction to go (shutterGoPercent1 56%).
 
-Shutter
-The aim of this mod is to operate your shutter and to keep track on the position of your shutter. You can also instruct your shutter to go to 56% or whereever you want to go with.
-
-Following commands are currently supported....
-ShutterMinDSec1/2 (enter DeciSec = Sec*10) : minimal position of the shutter
+**Following commands are currently supported....**
+* ShutterMinDSec1/2 (enter DeciSec = Sec*10) : minimal position of the shutter  
 => my shutter go up too much, so I can limit them at a minimum level
-ShutterMaxDSec1/2 (enter DeciSec = Sec*10) : maximum position of the shutter
+* ShutterMaxDSec1/2 (enter DeciSec = Sec*10) : maximum position of the shutter  
 => Add here how long you need to bring your shutter all down (15 sec = 150)
-shutterPosDSec1/2 (enter DeciSec = Sec*10) : current position in DSEC (corrected)
+* shutterPosDSec1/2 (enter DeciSec = Sec*10) : current position in DSEC (corrected)  
 => get to know the current position of your shutter in seconds. Ex 10 means that the shutter is down 10sec.
-shutterGoPercent1/2 (enter DeciSec = Sec*10) : Move shutter to x%
+* shutterGoPercent1/2 (enter DeciSec = Sec*10) : Move shutter to x%  
 => Either move the shutter to a certain % or just request the current%
-shutStartDelayDSec1/2 (enter DeciSec = Sec*10) : time the motor needs to start the shutter in Dsec
-=> In case your shutter needs half a second to start, you can enter here the start delay (1/2 sec = 5)
-shutLagUpwardsDSec1/2 (enter DeciSec = Sec*10) : difference in Dsec the shutter needs longer UP
-=> In case your shutter takes longer to go up and down, then enter here the difference. (if it takes 15sec down and 20Sec up, then enter 50)
-ShutStdPulseTDsec1/2   (standard pulsetime to be set afer any movements)
+* shutStartDelayDSec1/2 (enter DeciSec = Sec*10) : time the motor needs to start the shutter in Dsec  
+=> In case your shutter needs half a second to start, you can enter here the start delay (1/2 sec = 5)  
+* shutLagUpwardsDSec1/2 (enter DeciSec = Sec*10) : difference in Dsec the shutter needs longer UP  
+=> In case your shutter takes longer to go up and down, then enter here the difference.   
+   (example if it takes 15sec down and 20Sec up, then enter 50)
+* ShutStdPulseTDsec1/2   (standard pulsetime to be set after any movements)  
 => Pulsetime is reset to this value of your choice when not moving
+=> Set it to 0 if you want to push-hold the buttons to move the shutters
 
 Commands can be entered on MQTT, Web, button. The sonoff will figure out all the rest.
 This is only an add-on and I will probably not keep it up to date with future releases (only if it is needed for me). But I have commented what I did in the code. Search for LOBOCOBRA and you will understand my code.
