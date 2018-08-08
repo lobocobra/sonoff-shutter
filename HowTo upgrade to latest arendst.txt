@@ -15,10 +15,14 @@ Installation
 
 Test compliation and its done... I was amazed it is 100x times better than with GIT TOOLS
 
-Install MELD
+Install MELD & Tortoise Git
 **********************************
+1) Install Git Gui (needed for Tortoise)
+2) install Tortoise
+3) install meld
+4) changes settings in Tortoise to use Meld
 !!!! use this tool for automatic upgrade.... MELD
-- add in settings/diff viewer/ C:\Program Files (x86)\Meld\meld.exe %mine %base %theirs --output %merged --auto-merge
+- add Turtoise in settings/diff viewer/ C:\Program Files (x86)\Meld\meld.exe %mine %base %theirs --output %merged --auto-merge
 - you need to add it 3x.... 
 - !!! the tool needs some seconds to open.... like 10
 
