@@ -25,7 +25,7 @@
     - Select IDE Tools - Flash Size: "1M (no SPIFFS)"
   ====================================================*/
 // lobocobra start
-#define VERSION                0x0601010c   // 6.1.1l
+#define VERSION                0x0601010d   // 6.1.1m
 // lobocobra end
 // Location specific includes
 #include <core_version.h>                   // Arduino_Esp8266 version information (ARDUINO_ESP8266_RELEASE and ARDUINO_ESP8266_RELEASE_2_3_0)
@@ -1311,7 +1311,7 @@ void ExecuteCommandPower(byte device, byte state, int source)
 
 // lobocobra start
   // call the code to update the position
-  if (Settings.flag3.shuttermode) ExecutePowerUpdateShutterPos(device);
+  if (Settings.flag3.shuttermode) if (!ExecutePowerUpdateShutterPos(device)) state = POWER_OFF; // we do not start the movement if we are out boundaries, false return mean, do not start
 // lobocobra end
 
     switch (state) {

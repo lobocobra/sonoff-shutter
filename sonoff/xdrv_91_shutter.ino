@@ -72,13 +72,18 @@ void ShutterInit() {
   }
 }
 
-void ExecutePowerUpdateShutterPos(byte device ) { // when a status is changing update the shuter pos
+boolean ExecutePowerUpdateShutterPos(byte device ) { // when a status is changing update the shuter pos, return false, if we must stop the activation of the relay
   int shutRuntime = 0;
+  boolean result = true;
   // update current position of the shutter after it is stopped, it is triggered by sonoff.ino when a power command is executed
   for (byte i = 1; i <= devices_present; i++) {
     byte mask = 0x01 << (i - 1); //set the mask to the right device
     if ((device == i) && ((power & mask) != mask ) ) {
-      shutDeciSecMem[(i > 2)] = shutDeciSecCounter;  //Power was OFF => we are about to start, so I save start time
+      // check if the shutter would go out boundaries and prevent start in such a case
+      if ( (Settings.shutterPosCurrentDeciSec[(i > 2)]>= Settings.shutterPosMaxDeciSec[(i > 2)] &&  !(device & 0x01)) || (Settings.shutterPosCurrentDeciSec[(i > 2)]<= Settings.shutterPosMinDeciSec[(i > 2)]+2 &&  device & 0x01)) // bug that we never go below 2, so we add the 2 (work around)
+        result = false; // check we we are outside or at boundaries and go into wrong direction, if yes ,stop movement
+      else      
+        shutDeciSecMem[(i > 2)] = shutDeciSecCounter;  //Power was OFF => we are about to start, so I save start time
     }
     // now check if the current device is the right one and already ON and will go off => then calculate position
     // odd=up
@@ -107,7 +112,7 @@ void ExecutePowerUpdateShutterPos(byte device ) { // when a status is changing u
   }
    //Serial.print("ExecutePowerFunc Called for  Device:");Serial.print(device);Serial.print(" counter@:");Serial.print(shutDeciSecCounter);Serial.print(" Runtime@:");Serial.println(shutRuntime);
   ShowShutterPos(round((float)device/2 ));
-  
+  return result;
 }
 
 void Shutter_everySek() {
@@ -175,15 +180,15 @@ boolean MqttShutterCommand()
   }
   else if (CMND_shutterMinDSec == command_code) {
     if (payload >= 0 && payload <= round((float)Settings.shutterPosMaxDeciSec[index - 1] / 2)  ) Settings.shutterPosMinDeciSec[index - 1] = payload;
-    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterPosMinDeciSec[index - 1]);
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_INDEX_LVALUE, command, index, Settings.shutterPosMinDeciSec[index - 1] );
   }
   else if (CMND_shutterMaxDSec == command_code) {
     if (payload >= 0 && payload <= 3000 ) Settings.shutterPosMaxDeciSec[index - 1] = payload;
-    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterPosMaxDeciSec[index - 1]);
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_INDEX_LVALUE, command, index, Settings.shutterPosMaxDeciSec[index - 1] );
   }
   else if (CMND_shutterPosDSec == command_code) {
     if (payload >= 0 && payload <= 3000 ) Settings.shutterPosCurrentDeciSec[index - 1] = payload;
-    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterPosCurrentDeciSec[index - 1]);
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_INDEX_LVALUE, command, index, Settings.shutterPosCurrentDeciSec[index - 1] );
   }
   else if (CMND_shutterGoPercent == command_code) {
     if (payload >= 0 && payload <= 100 ) {
@@ -215,16 +220,16 @@ boolean MqttShutterCommand()
         }
       }
     } else { //we give the position in %
-      snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, round((float)Settings.shutterPosCurrentDeciSec[index - 1] / Settings.shutterPosMaxDeciSec[index - 1] * 100) );
-    }
+        snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_INDEX_LVALUE, command, index, round((float)Settings.shutterPosCurrentDeciSec[index - 1] / Settings.shutterPosMaxDeciSec[index - 1] * 100) );
+      }
   }
   else if (CMND_shutStartDelayDSec == command_code) {
     if (payload >= 0 && payload <= round((float)Settings.shutterPosMaxDeciSec[index - 1] / 4)  ) Settings.shutterStartDelayDeciSec[index - 1] = payload;
-    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterStartDelayDeciSec[index - 1]);
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_INDEX_LVALUE, command, index, Settings.shutterStartDelayDeciSec[index - 1] );
   }
   else if (CMND_shutLagUpwardsDSec == command_code) {
     if (payload >= 0 && payload <= round((float)Settings.shutterPosMaxDeciSec[index - 1] / 4)  ) Settings.shutterLagUpwardsDeciSec[index - 1] = payload;
-    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterLagUpwardsDeciSec[index - 1]);
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_INDEX_LVALUE, command, index, Settings.shutterLagUpwardsDeciSec[index - 1] );
   }
   else if (CMND_ShutStdPulseTDsec == command_code) {
     if (payload >= 0 && payload <= Settings.shutterPosMaxDeciSec[index - 1] ){
@@ -232,7 +237,7 @@ boolean MqttShutterCommand()
       Settings.pulse_timer[index * 2 - 2] = payload;
       pulse_timer[index * 2 - 2] = 0;
       }
-    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_NVALUE, command, Settings.shutterStdPulseTDsec[index - 1]);
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_INDEX_LVALUE, command, index, Settings.shutterStdPulseTDsec[index - 1] );      
   }
   else { // no response for known command was defined, so we handle it as unknown
     serviced = false;  // Unknown command
