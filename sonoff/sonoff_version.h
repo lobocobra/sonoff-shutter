@@ -1,3 +1,4 @@
+//lobocobra modifications in this tab
 /*
   sonoff_version.h - Version header file for Sonoff-Tasmota
 
@@ -20,10 +21,10 @@
 #ifndef _SONOFF_VERSION_H_
 #define _SONOFF_VERSION_H_
 
-#define VERSION            0x06020102
+#define VERSION            0x06020106 //lobocobra
 
-#define D_PROGRAMNAME      "Sonoff-Tasmota"
-#define D_AUTHOR           "Theo Arends"
+#define D_PROGRAMNAME      "Sonoff-Tasmota-RELAYonOFF"
+#define D_AUTHOR           "Theo Arends / Mod by LoboCobra"
 //#define D_WEBLINK          "https://github.com/arendst/Sonoff-Tasmota"
 #define D_WEBLINK          "https://bit.ly/tasmota"
 

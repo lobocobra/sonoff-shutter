@@ -1,3 +1,4 @@
+//lobocobra modifications in this tab
 /*
   settings.h - setting variables for Sonoff-Tasmota
 
@@ -93,8 +94,10 @@ typedef union {                            // Restricted by MISRA-C Rule 18.4 bu
     uint32_t spare27 : 1;
     uint32_t spare28 : 1;
     uint32_t spare29 : 1;
-    uint32_t spare30 : 1;
-    uint32_t spare31 : 1;
+// lobocobra start
+    uint32_t relaymode : 1;
+    uint32_t split_interlock : 1;
+// lobocobra end
   };
 } SysBitfield3;
 
@@ -328,6 +331,18 @@ struct SYSCFG {
                                            // 800 Full - no more free locations
 
   char          rules[MAX_RULE_SETS][MAX_RULE_SIZE]; // 800 uses 512 bytes in v5.12.0m, 3 x 512 bytes in v5.14.0b
+
+//lobocobra start
+  long          relayOnDsec[4];            // #seconds delay was on, 0 = relay1
+  long          relayStarts[4];            // #number of starts per relay, 0 = relay1
+  unsigned int  relayDelayDsec[4];         // Delay from ON till the device is really running
+  double        relayDsecCons[4];        // Multiplicator, how many Liter do we use per Unit
+  double        relayCostFactor[4];        // Multiplicator, how much costs one Unit
+  long          relayUnitDivisor[4];       // For example if you have 1m3 water then the divisor is 1000l
+  char          relayUnitText[4][8];           // l/h or kg/h => Factor*(DSec*UnitDivisor) = Unit
+  char          relayCurrency[4][6];       // CHF / Euro /Dollar /Fr
+
+//lobocobra end
 
                                            // E00 - FFF free locations
 } Settings;

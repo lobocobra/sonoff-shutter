@@ -1,0 +1,31 @@
+Installation
+*********************************
+
+- Get&install PyCham
+- clone arendst GIT
+- !!! I had to remove GIT from the local version as PyCham seems to see old changes, you will move wrong code
+
+- in GyCham open both repository (so they are indexed) in the same project (it will ask you when opening the 2nd)
+- select one of the 2 (I took my local code) and right click and select compare, now search for the arendst code
+
+- now go file by file !!!! ignore those which you do not want this is important
+- left side you see markes where are the changes, go there and see what changes
+
+- then on top push the arrow >> to execute the file copy, the in code changes are done immediately.
+
+Test compliation and its done... I was amazed it is 100x times better than with GIT TOOLS
+
+Install MELD & Tortoise Git
+**********************************
+1) Install Git Gui (needed for Tortoise)
+2) install Tortoise
+3) install meld
+4) changes settings in Tortoise to use Meld
+!!!! use this tool for automatic upgrade.... MELD
+- add Turtoise in settings/diff viewer/ C:\Program Files (x86)\Meld\meld.exe %mine %base %theirs --output %merged --auto-merge
+- you need to add it 3x.... 
+- !!! the tool needs some seconds to open.... like 10
+
+Check things with GIT bash
+**********************************
+git diff --name-status master..development
