@@ -93,8 +93,8 @@ typedef union {                            // Restricted by MISRA-C Rule 18.4 bu
     uint32_t spare26 : 1;
     uint32_t spare27 : 1;
     uint32_t spare28 : 1;
-    uint32_t spare29 : 1;
 // lobocobra start
+    uint32_t brennermode : 1;
     uint32_t relaymode : 1;
     uint32_t split_interlock : 1;
 // lobocobra end
@@ -343,20 +343,20 @@ struct SYSCFG {
   char          relayCurrency[4][6];       // CHF / Euro /Dollar /Fr
 //lobocobra end
 
-  // lobocobra-brenner start add variables that are saved at reboot and all 24h // watch it, as you lose space if you have the wrong variable at the wrong spot (devide address by 4 for LONG) 
+// lobocobra start add variables that are saved at reboot and all 24h // watch it, as you lose space if you have the wrong variable at the wrong spot (devidable address by 4 for LONG) 
   long          LC_DEVmeter_TTLSec;        // Meter of total seconds above Highvalue since last manual oil mesurement. Reset to 0 if you enter new Oil level.     
   long          LC_DEVmeter_TTLCycles;     // Burning cycles... see above. Reset to 0 if you enter new Oil level.
   long          LC_DEVmeter_TTLOil;        // Liter of oil left in tank measured the last time manually. It will not be updated unless you enter a new value.
   float         LC_Config_OilConsHour;     // how much oil is used per hour in average
-  long          LC_Config_CorrCycleSec;    // correct each cycle by X seconds / negative value will be reduced, positive added / maybe your device has a worm-up time?
+  float         LC_Config_CorrCycleSec;    // correct each cycle by X seconds / negative value will be reduced, positive added / maybe your device has a worm-up time?
   long          LC_Config_OilMaxCapacity;  // how much oil can you put in your tank
   long          LC_Config_OilMinCapacity;  // how much oil is the minimum before we shut-down the Brenner (it would damage the Brenner)
   long          LC_DEVhist_Sec_Period[2];  // Array with history data about Device SEC TTL / TodaySummed=0, yesterday=1 etc / I save the data so after a outage/reset we go on as before without data loss
   long          LC_DEVhist_Cycle_Period[2];// Array with history data about Device SEC TTL / TodaySummed=0, yesterday=1 etc / I save the data so after a outage/reset we go on as before without data loss
   float         LC_DEVmeter_OilTemp;       // Temp of the oil in the tank... will be used to calculate liter at 15° Celsius
-  uint16_t      LC_Config_OilPrice10000l;  // Price per 10000l Oil, so we can add 2 digits
-  uint16_t      LC_Config_PowerPrice100kw; // Price per 100kw, so we can add 2 digits
-  // lobocobra-brenner end
+  float         LC_Config_OilPrice100L;    // Price per 10000l Oil, so we can add 2 digits
+  float         LC_Config_PowerPrice1kwh;  // Price per 100kw, so we can add 2 digits
+// lobocobra end
 
 
                                            // E00 - FFF free locations

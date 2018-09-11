@@ -28,7 +28,24 @@
  * - ShutStdPulseTDsec1/2   (standard pulsetime to be set afer any movements)
  * - Setoption 80 enable Shutter function
  * - Setoption 81 enable Interlock Split (if set interlock will be activated on next push)
-  */
+ * 
+ * * LoboCobra Adapt POW to count time a device is ON in SECONDS. Following commands are used: !!! hard-coded is a 120sec long cycle to apply Cycle Corr and a min 1-30 cycle elimination
+ * !!! 472k seems to be a limit of memory
+ * - POWERhigh                 seconds are counted once powerhigh is passed
+ * - POWERlow                  seconds continue to be counted till we go below this limit
+ * - BRENNERttl                without paramater it gives you how many SEC your devices worked, keep it in sync with when you last time manually updated oil tank !!! if not in sync your calculation how much is left, is wrong
+ * - BRENNERcycle              without paramater it gives you how many cycles you had, keep it in sync with when you last time manually updated oil tank
+ * - BRENNERoelstand           with paramaeter -1: report oil level, how it was at brennerttl 0 and cycle 0
+ *                             with a paramater >0 :  corrects the starting oli level when BrennerSec was at 0 and cycles was at 0 // NEVER change this value to current oil level, whithout resetting cycles and ttlsec
+ *                             without parameter: calculate oil level
+ * - BRENNERoeltemp            not used, will be used to calculate the oil at 15° // will need temp surveillance of oil tank
+ * - BRENNERoelverb1H          enter how much oil your device is using in 1h in continous burning mode 
+ * - BRENNERoelmaxcapacity     not used, will in future give the info how many % is used
+ * - BRENNERoelmincapacity     not used, will in future shut down the device, when the oiltank is empty to prevent issues with dirty oil 
+ * - BrennerCorrCycleSec       after each cycle is done, reduce from BRENNERttl, in my case the device starts up 11sec before burning starts (0 - 600)
+ * - BRENNERoelprice100L       price of 100L oil to have price per cent
+ * - BRENNERPowerPrice1kwh     price of 1KWh power 
+*/
 /*
 /* 6.1.1 20180714
  * Revert wifi changes (#3177)

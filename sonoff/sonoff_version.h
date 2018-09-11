@@ -23,7 +23,7 @@
 
 #define VERSION            0x06020106 //lobocobra
 
-#define D_PROGRAMNAME      "Sonoff-Tasmota-RELAYonOFF"
+#define D_PROGRAMNAME      "Sonoff-Tasmota-BRENNER&RELAY"
 #define D_AUTHOR           "Theo Arends / Mod by LoboCobra"
 //#define D_WEBLINK          "https://github.com/arendst/Sonoff-Tasmota"
 #define D_WEBLINK          "https://bit.ly/tasmota"
