@@ -69,14 +69,10 @@ long LC_DEV_ONsec  = 0L;                         // Prevent counting of fake cyc
 void BrennerInit() {
   for (byte i = 0; i <2; i++)  {
     //eliminate impossible values
-    if ((Settings.LC_DEVhist_Sec_Period[0] > Settings.LC_DEVmeter_TTLSec ) || (Settings.LC_DEVhist_Sec_Period[0] == 0)){Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;}; // correct impossible value of history to prevent errors till daily reset
-    if ((Settings.LC_DEVhist_Sec_Period[1] > Settings.LC_DEVmeter_TTLSec ) || (Settings.LC_DEVhist_Sec_Period[1] == 0)){Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVmeter_TTLSec;}; // correct impossible value of history to prevent errors till daily reset, yesterday is = today till next day                                                                                                                                                               
-
-    if ((Settings.LC_DEVhist_Cycle_Period[0] > Settings.LC_DEVmeter_TTLCycles ) || (Settings.LC_DEVhist_Cycle_Period[0] == 0)){Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;}; // correct impossible value of history to prevent errors till daily reset
-    if ((Settings.LC_DEVhist_Cycle_Period[1] > Settings.LC_DEVmeter_TTLCycles ) || (Settings.LC_DEVhist_Cycle_Period[1] == 0)){Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVmeter_TTLCycles;}; // correct impossible value of history to prevent errors till daily reset, yesterday is = today till next day                                                                                                                                                               
-   
     if (Settings.LC_Config_OilMinCapacity >= Settings.LC_Config_OilMaxCapacity)  Settings.LC_Config_OilMinCapacity =0; // set Min to 0 if bigger than Max
     if (Settings.LC_Config_OilMaxCapacity <  Settings.LC_DEVmeter_TTLOil) Settings.LC_Config_OilMaxCapacity=Settings.LC_DEVmeter_TTLOil;
+    if (Settings.LC_DEVhist_Sec_Period[1] > Settings.LC_DEVmeter_TTLSec) Settings.LC_DEVhist_Sec_Period[1] =0 ; // yesterday can not be biggar than total
+    if (Settings.LC_DEVhist_Cycle_Period[1] > Settings.LC_DEVmeter_TTLCycles) Settings.LC_DEVhist_Cycle_Period[1]=0;
   }
 }
 
@@ -107,13 +103,11 @@ void BrennerMidnight(byte i){
         Serial.println("Midnight manually started");
         // put here the code to 0 the day
         // TTL sec reset
-        Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVhist_Sec_Period[0];       // save today as yesterday as a timestamp
-        Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;             // save new today start point, I know that this value is not corrected, we will do it when we print, if we update, we have yesterday and today corrected
+        Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVmeter_TTLSec      - Settings.LC_DEVhist_Sec_Period[0];      // yesterday can not increase so we save the value
+        Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;                                             // save timestamp of uncorrected value
         // TTL cycles reset
-        Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVhist_Cycle_Period[0];  // save what is now yesterday
-        Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;       // save new today start point
-        // cycles yesterday avg reset
-        // not needed we divide yestday numbers
+        Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0];  // yesterday can not increase so we save the value
+        Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;                                        // save timestamp of uncorrected value
       }
     }
 }
@@ -136,21 +130,22 @@ long seconds[2]{0L,0L};
       else {
              LC_Device_Cycle_on = false;  // we dropped below powerlow
              energy_max_reached = false;  // we want to be ready for next powerhigh
-             if (( LC_DEV_ONsec >= 1 ) && (LC_DEV_ONsec <= Settings.LC_Configfalse_alertSec ) ) {   // POWERHIGH was less than 31 sec on, so it is a false alert
+             if (( LC_DEV_ONsec >= 1 ) && (LC_DEV_ONsec <= Settings.LC_Configfalse_alertSec ) ) {   // POWERHIGH was less than defined sec on, so it is a false alert
                 //let's reverse all countings as the cycle was a false alert due to a WATT Peak
                 Settings.LC_DEVmeter_TTLSec -= LC_DEV_ONsec;       // remove fake seconds
                 Settings.LC_DEVmeter_TTLCycles-- ;                 // lower cycle by 1 as there was a fake start and we remove all fake data
              } else { // ok, this cycle is counting, so send it on MQTT
-                      if ((float)LC_DEV_ONsec-Settings.LC_Config_CorrCycleSec > 0 ){
+                      if ((float)LC_DEV_ONsec-Settings.LC_Config_CorrCycleSec > 0 ){ //CorrCycle is a float....
 
                             // send to mqtt the values of the cycles after a cycle ended
                             //calculate today
                             cycles[0]  = Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0];
-                            seconds[0] = Settings.LC_DEVmeter_TTLSec    - Settings.LC_DEVhist_Sec_Period[0]  -  round(cycles[0] * Settings.LC_Config_CorrCycleSec);
+                            seconds[0] = Settings.LC_DEVmeter_TTLSec    - Settings.LC_DEVhist_Sec_Period[0]  -  round((float)cycles[0] * Settings.LC_Config_CorrCycleSec);
                                                  
                             //calculate yesterday
-                            cycles[1]  = Settings.LC_DEVmeter_TTLCycles - cycles[0]    - Settings.LC_DEVhist_Cycle_Period[1];
-                            seconds[1] = Settings.LC_DEVmeter_TTLSec    - seconds[0]   - Settings.LC_DEVhist_Sec_Period[1]  -  round(cycles[1] * Settings.LC_Config_CorrCycleSec);
+                            cycles[1]  = Settings.LC_DEVhist_Cycle_Period[1] ? Settings.LC_DEVhist_Cycle_Period[1] :1 ; // avoid division by 0
+                            seconds[1] = Settings.LC_DEVhist_Sec_Period[1]  -  round((float)cycles[1] * Settings.LC_Config_CorrCycleSec);
+                            // first 2 days after reboot we could have wrong numbers
                           
                             //send mqtt message
                             snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d}"), 
