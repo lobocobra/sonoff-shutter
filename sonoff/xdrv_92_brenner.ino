@@ -34,7 +34,7 @@
 #define D_CMND_BRENNERcorrcyclesec    "BRENNERCorrCycleSec"
 #define D_CMND_BRENNERoelprice100L    "BRENNERoelprice100L"
 #define D_CMND_BRENNERPowerPrice1kwh  "BRENNERPowerPrice1kwh"
-#define D_CMND_BRENNERfalseAlerSec    "BRENNERFalseAlertSec"
+#define D_CMND_BRENNERfalseAlertSec   "BRENNERFalseAlertSec"
 #define D_CMND_BRENNERreset           "BRENNERreset"            // command to reset history data of today and yesterday, also brennerttl and cycle, but not config numbers
 
 // MQTT Ausgabe
@@ -54,8 +54,8 @@
 /*********************************************************************************************\
    Variables
 \*********************************************************************************************/
-enum BrennerCommands {CMND_BRENNERttl, CMND_BRENNERcycle, CMND_BRENNERoelstand, CMND_BRENNERoeltemp, CMND_BRENNERoelverb1H, CMND_BRENNERoelmaxcapacity, CMND_BRENNERoelmincapacity, CMND_BRENNERcorrcyclesec, CMND_BRENNERoelprice100L, CMND_BRENNERPowerPrice1kwh, CMND_BRENNERfalseAlerSec, CMND_BRENNERreset };
-const char kBrennerCommands[] PROGMEM = D_CMND_BRENNERttl "|" D_CMND_BRENNERcycle  "|" D_CMND_BRENNERoelstand "|" D_CMND_BRENNERoeltemp "|" D_CMND_BRENNERoelverb1H "|" D_CMND_BRENNERoelmaxcapacity "|" D_CMND_BRENNERoelmincapacity  "|" D_CMND_BRENNERcorrcyclesec "|" D_CMND_BRENNERoelprice100L "|" D_CMND_BRENNERPowerPrice1kwh "|" D_CMND_BRENNERfalseAlerSec "|" D_CMND_BRENNERreset;
+enum BrennerCommands {CMND_BRENNERttl, CMND_BRENNERcycle, CMND_BRENNERoelstand, CMND_BRENNERoeltemp, CMND_BRENNERoelverb1H, CMND_BRENNERoelmaxcapacity, CMND_BRENNERoelmincapacity, CMND_BRENNERcorrcyclesec, CMND_BRENNERoelprice100L, CMND_BRENNERPowerPrice1kwh, CMND_BRENNERfalseAlertSec, CMND_BRENNERreset };
+const char kBrennerCommands[] PROGMEM = D_CMND_BRENNERttl "|" D_CMND_BRENNERcycle  "|" D_CMND_BRENNERoelstand "|" D_CMND_BRENNERoeltemp "|" D_CMND_BRENNERoelverb1H "|" D_CMND_BRENNERoelmaxcapacity "|" D_CMND_BRENNERoelmincapacity  "|" D_CMND_BRENNERcorrcyclesec "|" D_CMND_BRENNERoelprice100L "|" D_CMND_BRENNERPowerPrice1kwh "|" D_CMND_BRENNERfalseAlertSec "|" D_CMND_BRENNERreset;
 // Global variables
 boolean LC_MS100 = false;
 
@@ -81,15 +81,15 @@ void BrennerInit() {
 }
 
 void BrennerReset(long i) { //reset all variables to 0, you need to send -1 in order to reset them
-   if (i == -99 || i == -1) for (byte i = 0; i <2; i++)  {
+   if (i == -999 || i == -1) for (byte i = 0; i <2; i++)  {
       Settings.LC_DEVhist_Sec_Period[i] = 0;
       Settings.LC_DEVhist_Cycle_Period[i] = 0;
+      Settings.LC_DEVmeter_TTLCycles = 0;
+      Settings.LC_DEVmeter_TTLSec = 0;
+      Settings.LC_DEVmeter_TTLOil = 0;
   }
 
-  if (i == -99) {
-     Settings.LC_DEVmeter_TTLCycles = 0;
-     Settings.LC_DEVmeter_TTLSec = 0;
-     Settings.LC_DEVmeter_TTLOil = 0;
+  if (i == -999) {
      Settings.LC_Config_OilConsHour  = 0;   
      Settings.LC_Config_CorrCycleSec  = 0;  
      Settings.LC_Config_OilMaxCapacity  = 0;
@@ -101,24 +101,26 @@ void BrennerReset(long i) { //reset all variables to 0, you need to send -1 in o
   }
 }
 
-void BrennerMidnight(){
+void BrennerMidnight(byte i){
       if (RtcTime.valid) {
-      if (LocalTime() == Midnight()) {
-        Serial.println("Midnight started");
+      if (LocalTime() == Midnight() || i) {
+        Serial.println("Midnight manually started");
         // put here the code to 0 the day
-        // TTL sec                   
-        Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVhist_Sec_Period[0];       // save what is now yesterday
+        // TTL sec reset
+        Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVhist_Sec_Period[0];       // save today as yesterday as a timestamp
         Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;             // save new today start point, I know that this value is not corrected, we will do it when we print, if we update, we have yesterday and today corrected
-        // TTL cycles
+        // TTL cycles reset
         Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVhist_Cycle_Period[0];  // save what is now yesterday
         Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;       // save new today start point
+        // cycles yesterday avg reset
+        // not needed we divide yestday numbers
       }
     }
 }
 
 void Brenner_everySek() {
-long today_cycle[2];
-long today_sec[2];
+long cycles[2]{0L,0L};
+long seconds[2]{0L,0L};
   // we need a counter to have 1/10 of a second exact time
 
 //update uptime
@@ -141,26 +143,29 @@ long today_sec[2];
              } else { // ok, this cycle is counting, so send it on MQTT
                       if ((float)LC_DEV_ONsec-Settings.LC_Config_CorrCycleSec > 0 ){
 
-                          //calculate & print sec/cycle (last, today, yesterday, average)
-                          for (byte i = 0; i <= 1; i++) {
-                            today_cycle[i] = Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[i];
-                            today_sec[i]   = Settings.LC_DEVmeter_TTLSec    - (Settings.LC_DEVhist_Sec_Period[i]  -  round(today_cycle[i] * Settings.LC_Config_CorrCycleSec));
-                          }
+                            // send to mqtt the values of the cycles after a cycle ended
+                            //calculate today
+                            cycles[0]  = Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0];
+                            seconds[0] = Settings.LC_DEVmeter_TTLSec    - Settings.LC_DEVhist_Sec_Period[0]  -  round(cycles[0] * Settings.LC_Config_CorrCycleSec);
+                                                 
+                            //calculate yesterday
+                            cycles[1]  = Settings.LC_DEVmeter_TTLCycles - cycles[0]    - Settings.LC_DEVhist_Cycle_Period[1];
+                            seconds[1] = Settings.LC_DEVmeter_TTLSec    - seconds[0]   - Settings.LC_DEVhist_Sec_Period[1]  -  round(cycles[1] * Settings.LC_Config_CorrCycleSec);
+                          
                             //send mqtt message
                             snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d}"), 
                             D_JSON_SekperCycle_last, round((float)LC_DEV_ONsec-Settings.LC_Config_CorrCycleSec),
-                            D_JSON_SEKperCycle_24h, today_sec[0]/today_cycle[0],
-                            D_JSON_SEKperCycle_M1,  today_sec[1]/today_cycle[1],
-                            D_JSON_SEKperCycle_avg, round((float)(Settings.LC_DEVmeter_TTLSec - round(Settings.LC_DEVmeter_TTLCycles*Settings.LC_Config_CorrCycleSec)) / Settings.LC_DEVmeter_TTLCycles));
+                            D_JSON_SEKperCycle_24h,  round((float)seconds[0]/cycles[0]),
+                            D_JSON_SEKperCycle_M1,   round((float)seconds[1]/cycles[1]),
+                            D_JSON_SEKperCycle_avg,  round((float)(Settings.LC_DEVmeter_TTLSec - round(Settings.LC_DEVmeter_TTLCycles*Settings.LC_Config_CorrCycleSec)) / Settings.LC_DEVmeter_TTLCycles));
+                            
                             MqttPublishPrefixTopic_P(STAT, PSTR(D_RSLT_STATE), Settings.flag.mqtt_sensor_retain);
                       }
                     }
      LC_DEV_ONsec =0;              // prevent POWERHIGH peaks, as we are on powerlow, powerhigh is 0 
      }
-
-
 //at midnight, we reset the numbers
-  BrennerMidnight();
+  BrennerMidnight(0);
 }
 
 void Brenner_every100ms() {
@@ -215,6 +220,7 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
         snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLOil - round((((float)Settings.LC_DEVmeter_TTLSec - (Settings.LC_Config_CorrCycleSec * Settings.LC_DEVmeter_TTLCycles)) / 3600) * Settings.LC_Config_OilConsHour) ); // float is needed as you want to divide an integer, if not it gets cut
   }
   else if (CMND_BRENNERoeltemp == command_code) { // not yet used 
+    BrennerMidnight(1);
     if (payload_double >= 0) { // temp in house can not be below 0
       Settings.LC_DEVmeter_OilTemp = payload_double;
      }
@@ -262,12 +268,12 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
      char buffer[16]; // Arduino does not support %f, so we have to use dtostrf
      snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("{\"%s\":%s}"), command,  dtostrf(Settings.LC_Config_PowerPrice1kwh,XdrvMailbox.data_len+1,2,buffer) ); // we handle float here     
   } 
-    else if (CMND_BRENNERfalseAlerSec == command_code) {
+    else if (CMND_BRENNERfalseAlertSec == command_code) {
     if (payload >= 0 && payload <= 3600)  Settings.LC_Configfalse_alertSec = payload; // only load new data, if it is within range
     snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_Configfalse_alertSec ); 
   }
     else if (CMND_BRENNERreset == command_code) {
-    if (payload < 0) { BrennerReset(payload); snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s %d"), command, "BrennerReset executed with code ", payload );} // only reset on -1 or -99
+    if (payload < 0 && payload !=-99) { BrennerReset(payload); snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s %d"), command, "BrennerReset executed with code ", payload );} // only reset on -1 or -999
     else snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s %d"), command, "-1 to activate reset" );
   }
     else { // no response for known command was defined, so we handle it as unknown
@@ -319,8 +325,8 @@ return result;
 //lobocobra end
  
 void ShowBrennerPos(byte relay_i, uint8_t type_i) { 
-  long gestern_verbrauch = lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1);
-  long heute_verbrauch = lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[0], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0] ,1);
+  long heute_verbrauch =   lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[0], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0] ,1);
+  long gestern_verbrauch = (lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1))- heute_verbrauch;
   char buffer[2][10]; // Arduino does not support %f, so we have to use dtostrf
      
 
