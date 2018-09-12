@@ -18,8 +18,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-
-
 // #ifdef brenner
 
 /*********************************************************************************************\
@@ -36,24 +34,28 @@
 #define D_CMND_BRENNERcorrcyclesec    "BRENNERCorrCycleSec"
 #define D_CMND_BRENNERoelprice100L    "BRENNERoelprice100L"
 #define D_CMND_BRENNERPowerPrice1kwh  "BRENNERPowerPrice1kwh"
+#define D_CMND_BRENNERfalseAlerSec    "BRENNERFalseAlertSec"
+#define D_CMND_BRENNERreset           "BRENNERreset"            // command to reset history data of today and yesterday, also brennerttl and cycle, but not config numbers
+
 // MQTT Ausgabe
-#define D_JSON_SEKperCyle_24h         "B_Sek/Cycle_24h"          // 
-#define D_JSON_SEKperCycle_M1         "B_Sek/Cycle_Day-1"        // 
+#define D_JSON_SekperCycle_last       "B_SecCycle_last"         //
+#define D_JSON_SEKperCycle_24h        "B_SekCycle_24h"          // 
+#define D_JSON_SEKperCycle_M1         "B_SekCycle_Day-1"        // 
+#define D_JSON_SEKperCycle_avg        "B_SekCycle_avg"          // 
 #define D_JSON_Brenner_OelstandL      "BrennerOelstandL"         // 
 #define D_JSON_Brenner_OelstandFr     "BrennerOelstandFr"        // 
 #define D_JSON_OelVerbLheute          "BrennerOelVerbLheute"     // 
 #define D_JSON_OelVerbLgestern        "BrennerOelVerbLgestern"   // 
 #define D_JSON_LC_Device_SecTTL       "BrennerSekTTL"            // 
 #define D_JSON_LC_Device_Cycle        "BrennerCycles"            //
-
-
-
+#define D_JSON_LperH_today            "avg L/H heute"
+#define D_JSON_LperH_yesterday        "avg L/H gestern"
 
 /*********************************************************************************************\
    Variables
 \*********************************************************************************************/
-enum BrennerCommands {CMND_BRENNERttl, CMND_BRENNERcycle, CMND_BRENNERoelstand, CMND_BRENNERoeltemp, CMND_BRENNERoelverb1H, CMND_BRENNERoelmaxcapacity, CMND_BRENNERoelmincapacity, CMND_BRENNERcorrcyclesec, CMND_BRENNERoelprice100L, CMND_BRENNERPowerPrice1kwh};
-const char kBrennerCommands[] PROGMEM = D_CMND_BRENNERttl "|" D_CMND_BRENNERcycle  "|" D_CMND_BRENNERoelstand "|" D_CMND_BRENNERoeltemp "|" D_CMND_BRENNERoelverb1H "|" D_CMND_BRENNERoelmaxcapacity "|" D_CMND_BRENNERoelmincapacity  "|" D_CMND_BRENNERcorrcyclesec "|" D_CMND_BRENNERoelprice100L "|" D_CMND_BRENNERPowerPrice1kwh;
+enum BrennerCommands {CMND_BRENNERttl, CMND_BRENNERcycle, CMND_BRENNERoelstand, CMND_BRENNERoeltemp, CMND_BRENNERoelverb1H, CMND_BRENNERoelmaxcapacity, CMND_BRENNERoelmincapacity, CMND_BRENNERcorrcyclesec, CMND_BRENNERoelprice100L, CMND_BRENNERPowerPrice1kwh, CMND_BRENNERfalseAlerSec, CMND_BRENNERreset };
+const char kBrennerCommands[] PROGMEM = D_CMND_BRENNERttl "|" D_CMND_BRENNERcycle  "|" D_CMND_BRENNERoelstand "|" D_CMND_BRENNERoeltemp "|" D_CMND_BRENNERoelverb1H "|" D_CMND_BRENNERoelmaxcapacity "|" D_CMND_BRENNERoelmincapacity  "|" D_CMND_BRENNERcorrcyclesec "|" D_CMND_BRENNERoelprice100L "|" D_CMND_BRENNERPowerPrice1kwh "|" D_CMND_BRENNERfalseAlerSec "|" D_CMND_BRENNERreset;
 // Global variables
 boolean LC_MS100 = false;
 
@@ -65,28 +67,61 @@ long LC_DEV_ONsec  = 0L;                         // Prevent counting of fake cyc
     Procedures / Functions
   \*********************************************************************************************/
 void BrennerInit() {
-  for (byte i = 0; i < devices_present; i++)  {
+  for (byte i = 0; i <2; i++)  {
     //eliminate impossible values
-    if ((Settings.LC_DEVhist_Sec_Period[0] > Settings.LC_DEVmeter_TTLSec ) || (Settings.LC_DEVhist_Sec_Period[0] ==0)){Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;}; // correct impossible value of history to prevent errors till daily reset
-    if ((Settings.LC_DEVhist_Sec_Period[1] > Settings.LC_DEVmeter_TTLSec ) || (Settings.LC_DEVhist_Sec_Period[1] ==0)){Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVmeter_TTLSec;}; // correct impossible value of history to prevent errors till daily reset                                                                                                                                                               
+    if ((Settings.LC_DEVhist_Sec_Period[0] > Settings.LC_DEVmeter_TTLSec ) || (Settings.LC_DEVhist_Sec_Period[0] == 0)){Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;}; // correct impossible value of history to prevent errors till daily reset
+    if ((Settings.LC_DEVhist_Sec_Period[1] > Settings.LC_DEVmeter_TTLSec ) || (Settings.LC_DEVhist_Sec_Period[1] == 0)){Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVmeter_TTLSec;}; // correct impossible value of history to prevent errors till daily reset, yesterday is = today till next day                                                                                                                                                               
 
-    if ((Settings.LC_DEVhist_Cycle_Period[0] > Settings.LC_DEVmeter_TTLCycles ) || (Settings.LC_DEVhist_Cycle_Period[0] ==0)){Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;}; // correct impossible value of history to prevent errors till daily reset
-    if ((Settings.LC_DEVhist_Cycle_Period[1] > Settings.LC_DEVmeter_TTLCycles ) || (Settings.LC_DEVhist_Cycle_Period[1] ==0)){Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVmeter_TTLCycles;}; // correct impossible value of history to prevent errors till daily reset                                                                                                                                                               
+    if ((Settings.LC_DEVhist_Cycle_Period[0] > Settings.LC_DEVmeter_TTLCycles ) || (Settings.LC_DEVhist_Cycle_Period[0] == 0)){Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;}; // correct impossible value of history to prevent errors till daily reset
+    if ((Settings.LC_DEVhist_Cycle_Period[1] > Settings.LC_DEVmeter_TTLCycles ) || (Settings.LC_DEVhist_Cycle_Period[1] == 0)){Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVmeter_TTLCycles;}; // correct impossible value of history to prevent errors till daily reset, yesterday is = today till next day                                                                                                                                                               
+   
+    if (Settings.LC_Config_OilMinCapacity >= Settings.LC_Config_OilMaxCapacity)  Settings.LC_Config_OilMinCapacity =0; // set Min to 0 if bigger than Max
+    if (Settings.LC_Config_OilMaxCapacity <  Settings.LC_DEVmeter_TTLOil) Settings.LC_Config_OilMaxCapacity=Settings.LC_DEVmeter_TTLOil;
   }
 }
 
-boolean ExecuteUpdateBrenner(byte device ) { // when a status is changing we count the ON seconds
-  boolean result = true; //turn it false if you want to interrupt any start (over limit)
+void BrennerReset(long i) { //reset all variables to 0, you need to send -1 in order to reset them
+   if (i == -99 || i == -1) for (byte i = 0; i <2; i++)  {
+      Settings.LC_DEVhist_Sec_Period[i] = 0;
+      Settings.LC_DEVhist_Cycle_Period[i] = 0;
+  }
 
-  return result;  
+  if (i == -99) {
+     Settings.LC_DEVmeter_TTLCycles = 0;
+     Settings.LC_DEVmeter_TTLSec = 0;
+     Settings.LC_DEVmeter_TTLOil = 0;
+     Settings.LC_Config_OilConsHour  = 0;   
+     Settings.LC_Config_CorrCycleSec  = 0;  
+     Settings.LC_Config_OilMaxCapacity  = 0;
+     Settings.LC_Config_OilMinCapacity  = 0;
+     Settings.LC_DEVmeter_OilTemp  = 0;     
+     Settings.LC_Config_OilPrice100L = 0;  
+     Settings.LC_Config_PowerPrice1kwh = 0;
+     Settings.LC_Configfalse_alertSec = 0; 
+  }
+}
+
+void BrennerMidnight(){
+      if (RtcTime.valid) {
+      if (LocalTime() == Midnight()) {
+        Serial.println("Midnight started");
+        // put here the code to 0 the day
+        // TTL sec                   
+        Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVhist_Sec_Period[0];       // save what is now yesterday
+        Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;             // save new today start point, I know that this value is not corrected, we will do it when we print, if we update, we have yesterday and today corrected
+        // TTL cycles
+        Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVhist_Cycle_Period[0];  // save what is now yesterday
+        Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;       // save new today start point
+      }
+    }
 }
 
 void Brenner_everySek() {
-
+long today_cycle[2];
+long today_sec[2];
   // we need a counter to have 1/10 of a second exact time
 
-
-//lobocobra: increase Device uptime every second after powerhigh was reached and we do not drop below powerlow
+//update uptime
       if (energy_power > Settings.energy_max_power || energy_power > Settings.energy_min_power && energy_max_reached == true) { 
         energy_max_reached = true;                // ok we passed activation level and we count until we are below powerlow
         LC_DEV_ONsec++;                           // prevent POWERLOW  peaks, count the seconds of this cycle to prevent peaks
@@ -99,31 +134,36 @@ void Brenner_everySek() {
       else {
              LC_Device_Cycle_on = false;  // we dropped below powerlow
              energy_max_reached = false;  // we want to be ready for next powerhigh
-             if (( LC_DEV_ONsec >= 1 ) && (LC_DEV_ONsec <= 30 ) ) {   // POWERHIGH was less than 31 sec on, so it is a false alert
+             if (( LC_DEV_ONsec >= 1 ) && (LC_DEV_ONsec <= Settings.LC_Configfalse_alertSec ) ) {   // POWERHIGH was less than 31 sec on, so it is a false alert
                 //let's reverse all countings as the cycle was a false alert due to a WATT Peak
                 Settings.LC_DEVmeter_TTLSec -= LC_DEV_ONsec;       // remove fake seconds
                 Settings.LC_DEVmeter_TTLCycles-- ;                 // lower cycle by 1 as there was a fake start and we remove all fake data
-             } 
+             } else { // ok, this cycle is counting, so send it on MQTT
+                      if ((float)LC_DEV_ONsec-Settings.LC_Config_CorrCycleSec > 0 ){
+
+                          //calculate & print sec/cycle (last, today, yesterday, average)
+                          for (byte i = 0; i <= 1; i++) {
+                            today_cycle[i] = Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[i];
+                            today_sec[i]   = Settings.LC_DEVmeter_TTLSec    - (Settings.LC_DEVhist_Sec_Period[i]  -  round(today_cycle[i] * Settings.LC_Config_CorrCycleSec));
+                          }
+                            //send mqtt message
+                            snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d}"), 
+                            D_JSON_SekperCycle_last, round((float)LC_DEV_ONsec-Settings.LC_Config_CorrCycleSec),
+                            D_JSON_SEKperCycle_24h, today_sec[0]/today_cycle[0],
+                            D_JSON_SEKperCycle_M1,  today_sec[1]/today_cycle[1],
+                            D_JSON_SEKperCycle_avg, round((float)(Settings.LC_DEVmeter_TTLSec - round(Settings.LC_DEVmeter_TTLCycles*Settings.LC_Config_CorrCycleSec)) / Settings.LC_DEVmeter_TTLCycles));
+                            MqttPublishPrefixTopic_P(STAT, PSTR(D_RSLT_STATE), Settings.flag.mqtt_sensor_retain);
+                      }
+                    }
      LC_DEV_ONsec =0;              // prevent POWERHIGH peaks, as we are on powerlow, powerhigh is 0 
      }
 
+
 //at midnight, we reset the numbers
-    if (RtcTime.valid) {
-      //Serial.print("RTCtime.valid:");Serial.print(RtcTime.valid);Serial.print(" Midnight:");Serial.print(Midnight()); Serial.print(" LocalTime:");Serial.println(LocalTime());    
-      if (LocalTime() == Midnight()) {
-        // put here the code to 0 the day
-        // TTL sec                   
-        Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVhist_Sec_Period[0];       // save what is now yesterday
-        Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;             // save new today start point, I know that this value is not corrected, we will do it when we print, if we update, we have yesterday and today corrected
-        // TTL cycles
-        Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVhist_Cycle_Period[0];  // save what is now yesterday
-        Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;       // save new today start point
-      }
-    }
+  BrennerMidnight();
 }
 
 void Brenner_every100ms() {
-
 
 }
 
@@ -158,8 +198,6 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
     serviced = false;  // Unknown command
   }
   else if (CMND_BRENNERttl == command_code) {
-    Serial.print("Payload: \t");Serial.println(payload);
-    Serial.print("TTLsec: \t");Serial.println(Settings.LC_DEVmeter_TTLSec);
     if (payload >= 0 && payload <= 2147483647)  Settings.LC_DEVmeter_TTLSec = payload; // only load new data, if it is within range
     snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLSec ); 
   }
@@ -168,13 +206,13 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLCycles );
   }
   else if (CMND_BRENNERoelstand == command_code) {
-    if ((payload >= Settings.LC_Config_OilMinCapacity) && (payload <= Settings.LC_Config_OilMaxCapacity)) { // if it is a new value it must be within Capacity limits
+    if ((payload >= Settings.LC_Config_OilMinCapacity) && (payload <= Settings.LC_Config_OilMaxCapacity) || Settings.LC_Config_OilMaxCapacity == 0 && payload > 0) { // if it is a new value it must be within Capacity limits, unless they are wrong
         Settings.LC_DEVmeter_TTLOil = payload; // ok we received a value, so we overwrite the existing, but only if it is something that makes sence and is bigger than minimal setting
         } 
     if (payload == -1) snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLOil ); // we show the startpoint of calculation
     else //we calculate the value
-                                                                                                                                      // float to get digits                 remove the correction factor as the burner starts later            calculate hours * usage
-        snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLOil - round((((float)Settings.LC_DEVmeter_TTLSec -(Settings.LC_Config_CorrCycleSec * Settings.LC_DEVmeter_TTLCycles)) / 3600) * Settings.LC_Config_OilConsHour) ); // float is needed as you want to divide an integer, if not it gets cut
+                                                                                                                            // float to get digits                 remove the correction factor as the burner starts later            calculate hours * usage
+        snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLOil - round((((float)Settings.LC_DEVmeter_TTLSec - (Settings.LC_Config_CorrCycleSec * Settings.LC_DEVmeter_TTLCycles)) / 3600) * Settings.LC_Config_OilConsHour) ); // float is needed as you want to divide an integer, if not it gets cut
   }
   else if (CMND_BRENNERoeltemp == command_code) { // not yet used 
     if (payload_double >= 0) { // temp in house can not be below 0
@@ -224,10 +262,18 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
      char buffer[16]; // Arduino does not support %f, so we have to use dtostrf
      snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("{\"%s\":%s}"), command,  dtostrf(Settings.LC_Config_PowerPrice1kwh,XdrvMailbox.data_len+1,2,buffer) ); // we handle float here     
   } 
+    else if (CMND_BRENNERfalseAlerSec == command_code) {
+    if (payload >= 0 && payload <= 3600)  Settings.LC_Configfalse_alertSec = payload; // only load new data, if it is within range
+    snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_Configfalse_alertSec ); 
+  }
+    else if (CMND_BRENNERreset == command_code) {
+    if (payload < 0) { BrennerReset(payload); snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s %d"), command, "BrennerReset executed with code ", payload );} // only reset on -1 or -99
+    else snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s %d"), command, "-1 to activate reset" );
+  }
     else { // no response for known command was defined, so we handle it as unknown
     serviced = false;  // Unknown command
   }  
-    
+   
   return serviced;
 }
 
@@ -273,50 +319,24 @@ return result;
 //lobocobra end
  
 void ShowBrennerPos(byte relay_i, uint8_t type_i) { 
-  // INDEX99 show all devices
-  // TYPE 2) STAT 3) SENSOR
+  long gestern_verbrauch = lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1);
+  long heute_verbrauch = lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[0], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0] ,1);
+  char buffer[2][10]; // Arduino does not support %f, so we have to use dtostrf
+     
 
-  //16:15:09 MQT: tele/ug_heizung_brenner/SENSOR = {"Time":"2018-06-17T16:15:09","ENERGY":{"Total":355.872,"Yesterday":0.413,"Today":0.161,"Period":1,"Power":10,"Factor":0.39,"Voltage":231,"Current":0.107,"BrennerSek24h":0,"BrennerSekDay-1":1462,"BrennerOelstandL":3945, "BrennerOelstandFr":3086,"BrennerSekTTL":349817,"BrennerCycles":1264,"BrennerOelVerbLheute":0,"BrennerOelVerbLgestern":1}} (retained)
-  //"BrennerSek24h":0,"BrennerSekDay-1":1462,"BrennerOelstandL":3945, "BrennerOelstandFr":3086,"BrennerSekTTL":349817,"BrennerCycles":1264,"BrennerOelVerbLheute":0,"BrennerOelVerbLgestern":1
-  // BrennerSekTTL BrennerCycles BrennerOelstandL BrennerOelstandFr
-
-snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("%s,\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d}"), 
+  snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("%s,{\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%s,\"%s\":%s}}"), 
         mqtt_data,
         D_JSON_LC_Device_SecTTL, Settings.LC_DEVmeter_TTLSec - round(Settings.LC_DEVmeter_TTLCycles*Settings.LC_Config_CorrCycleSec),  //we want to show the corrected time
         D_JSON_LC_Device_Cycle, Settings.LC_DEVmeter_TTLCycles,
         D_JSON_Brenner_OelstandL, lobo_calcOelstand(1),
         D_JSON_Brenner_OelstandFr, lobo_calcOelstand(0),
-        D_JSON_OelVerbLheute,   lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[0], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0] ,1),
-        D_JSON_OelVerbLgestern, lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1),
-        D_JSON_SEKperCyle_24h, (Settings.LC_DEVhist_Cycle_Period[0]!=0 ? round((float)(Settings.LC_DEVhist_Sec_Period[0] - round(Settings.LC_DEVhist_Cycle_Period[0]*Settings.LC_Config_CorrCycleSec)) / Settings.LC_DEVhist_Cycle_Period[0]) : 0), //we correct the history data and remove warm-up times
-        D_JSON_SEKperCycle_M1, (Settings.LC_DEVhist_Cycle_Period[1]!=0 ? round((float)(Settings.LC_DEVhist_Sec_Period[1] - round(Settings.LC_DEVhist_Cycle_Period[1]*Settings.LC_Config_CorrCycleSec)) / Settings.LC_DEVhist_Cycle_Period[1]) : 0)  //we correct the history data and remove warm-up times
-
-
-
-//        D_Relay_Consumption, index, Settings.relayCurrency[index-1],dtostrf(relayconsumptioncost,Rlength[1]+1+4,2,Rbuffer2),
-//        D_Relay_Consumption, index, D_CMND_relayOnDsec, Settings.relayOnDsec[index - 1] + (type_i==3 ? 0: RelayRuntime),    //type_i, when we tele, then we need to add current values, if STAT, then we are launched by OFF trigger, so its not needed
-//        D_Relay_Consumption, index, D_CMND_relayStarts, Settings.relayStarts[index - 1] + (type_i==3 ? 0: (RelayRuntime>0)) //type_i, when we tele, then we need to add current values, if STAT, then we are launched by OFF trigger, so its not needed
-        );    
-  
-
-/*         
-#define D_JSON_LC_Device_Cycle      "BrennerCycles"  
-  long          LC_DEVmeter_TTLSec;        // Meter of total seconds above Highvalue since last manual oil mesurement. Reset to 0 if you enter new Oil level.     
-  long          LC_DEVmeter_TTLCycles;     // Burning cycles... see above. Reset to 0 if you enter new Oil level.
-  long          LC_DEVmeter_TTLOil;        // Liter of oil left in tank measured the last time manually. It will not be updated unless you enter a new value.
-  float         LC_Config_OilConsHour;     // how much oil is used per hour in average
-  float         LC_Config_CorrCycleSec;    // correct each cycle by X seconds / negative value will be reduced, positive added / maybe your device has a worm-up time?
-  long          LC_Config_OilMaxCapacity;  // how much oil can you put in your tank
-  long          LC_Config_OilMinCapacity;  // how much oil is the minimum before we shut-down the Brenner (it would damage the Brenner)
-  long          LC_DEVhist_Sec_Period[2];  // Array with history data about Device SEC TTL / TodaySummed=0, yesterday=1 etc / I save the data so after a outage/reset we go on as before without data loss
-  long          LC_DEVhist_Cycle_Period[2];// Array with history data about Device SEC TTL / TodaySummed=0, yesterday=1 etc / I save the data so after a outage/reset we go on as before without data loss
-  float         LC_DEVmeter_OilTemp;       // Temp of the oil in the tank... will be used to calculate liter at 15° Celsius
-  float         LC_Config_OilPrice100L;    // Price per 10000l Oil, so we can add 2 digits
-  float         LC_Config_PowerPrice1kwh;  // Price per 100kw, so we can add 2 digits
-*/
-
-
+        D_JSON_OelVerbLheute,    heute_verbrauch,
+        D_JSON_OelVerbLgestern,  gestern_verbrauch,
+        D_JSON_LperH_today,      dtostrf( (float)heute_verbrauch/((float)GetMinutesPastMidnight()/60) ,7,2,buffer[0]) ,
+        D_JSON_LperH_yesterday,  dtostrf( (float)gestern_verbrauch/24 ,7,2,buffer[1])        
+  );    
 }
+
 
 /*********************************************************************************************\
    Interface
@@ -332,8 +352,7 @@ boolean Xdrv92(byte function){
         BrennerInit();
         break;
       case FUNC_JSON_APPEND:
-        ShowBrennerPos(1,2); //99 = show all relay
-        //MqttPublishPrefixTopic_P(TELE, PSTR(D_RSLT_STATE), Settings.flag.mqtt_sensor_retain); // after data is loaded to mqtt_data, we force the send out of the message
+        ShowBrennerPos(1,2); //variables are not used in brenner... i kept it for future plans
         break;
       case FUNC_COMMAND:
         result = MqttBrennerCommand();

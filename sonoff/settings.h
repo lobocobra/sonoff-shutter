@@ -356,6 +356,7 @@ struct SYSCFG {
   float         LC_DEVmeter_OilTemp;       // Temp of the oil in the tank... will be used to calculate liter at 15° Celsius
   float         LC_Config_OilPrice100L;    // Price per 10000l Oil, so we can add 2 digits
   float         LC_Config_PowerPrice1kwh;  // Price per 100kw, so we can add 2 digits
+  uint16_t      LC_Configfalse_alertSec;   // State how many seconds are considered as false alert, as POW has fluctuations in measurement, the higher you can set it, the better the counting
 // lobocobra end
 
 

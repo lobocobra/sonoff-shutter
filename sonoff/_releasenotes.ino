@@ -45,6 +45,10 @@
  * - BrennerCorrCycleSec       after each cycle is done, reduce from BRENNERttl, in my case the device starts up 11sec before burning starts (0 - 600)
  * - BRENNERoelprice100L       price of 100L oil to have price per cent
  * - BRENNERPowerPrice1kwh     price of 1KWh power 
+ * - BRENNERfalseAlerSec       insruct code to ignore any cycle with less than this number of sec, can improve highly quality of poor POW measurement. If you know that a cycle is at least 30sec, put it to 30
+ * - BRENNERreset              reset all variables to 0 ! yesterday and today are then gone
+ *                             -99 to reset all
+ *                             -1 to reset only history
 */
 /*
 /* 6.1.1 20180714
