@@ -62,6 +62,7 @@ boolean LC_MS100 = false;
 bool energy_max_reached = false;                 // did we reach the activation level (we were once higher than powerhigh)
 bool LC_Device_Cycle_on = false;                 // Is Burner cyle on? (Needed to find next cyle
 long LC_DEV_ONsec  = 0L;                         // Prevent counting of fake cycles an seconds when WATT PEAKS occur less than 10 secnds (sensor issues)
+float LC_DEVmeter_OilCoef = 0.0007;              // how much is the volume of 1l oil increased with 1° Celsius 
 
 /*********************************************************************************************\
     Procedures / Functions
@@ -207,15 +208,15 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
   }
   else if (CMND_BRENNERoelstand == command_code) {
     if ((payload >= Settings.LC_Config_OilMinCapacity) && (payload <= Settings.LC_Config_OilMaxCapacity) || Settings.LC_Config_OilMaxCapacity == 0 && payload > 0) { // if it is a new value it must be within Capacity limits, unless they are wrong
-        Settings.LC_DEVmeter_TTLOil = payload; // ok we received a value, so we overwrite the existing, but only if it is something that makes sence and is bigger than minimal setting
+        Settings.LC_DEVmeter_TTLOil = BrennerOelCapTempCorr(payload, true); // valid value means we have a new start point, but inline the code calculated with oil volume at 15°
         } 
-    if (payload == -1) snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLOil ); // we show the startpoint of calculation
+    if (payload == -1) snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLOil ); // we show the startpoint of calculation // but at 15° not what we entered
     else //we calculate the value
-                                                                                                                            // float to get digits                 remove the correction factor as the burner starts later            calculate hours * usage
-        snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, Settings.LC_DEVmeter_TTLOil - round((((float)Settings.LC_DEVmeter_TTLSec - (Settings.LC_Config_CorrCycleSec * Settings.LC_DEVmeter_TTLCycles)) / 3600) * Settings.LC_Config_OilConsHour) ); // float is needed as you want to divide an integer, if not it gets cut
+        snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, BrennerOelCapTempCorr( lobo_calcOelstand(true),false)); // print the  oil in the tank but the real volume
   }
   else if (CMND_BRENNERoeltemp == command_code) { // not yet used 
-    BrennerMidnight(1);
+    //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REMOVE WHEN ALL IS TESTET
+    //BrennerMidnight(1);
     if (payload_double >= 0) { // temp in house can not be below 0
       Settings.LC_DEVmeter_OilTemp = payload_double;
      }
@@ -274,17 +275,29 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
     else { // no response for known command was defined, so we handle it as unknown
     serviced = false;  // Unknown command
   }  
-   
   return serviced;
 }
 
-//lobocobra start
+long BrennerOelCapTempCorr(long OilCapacity, boolean FillTank){
+  // check for correct/possible value of the temperature, if not we assume 15°, which means no correction
+  if ( Settings.LC_DEVmeter_OilTemp >= 10 && Settings.LC_DEVmeter_OilTemp <= 40 ){ 
+      // ok we have a possible temperature, now applay correction
+      long OilExpansion = round((float)OilCapacity * LC_DEVmeter_OilCoef * ( Settings.LC_DEVmeter_OilTemp - 15 ));     
+      if (FillTank) OilExpansion = OilExpansion*-1; // if we just filled in Oil we need to calculate the volume at 15° if not we want to know how much volume is in the thank
+      OilCapacity = OilCapacity + OilExpansion;
+// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "3) calc %d"), round((float)OilCapacity * LC_DEVmeter_OilCoef)); AddLog(LOG_LEVEL_DEBUG);       
+  }
+  if (OilCapacity < 0) OilCapacity = 0; // never return negative value
+  return OilCapacity;
+}
+
 long lobo_calcOelstand(boolean Liter){ //0= calculate liter and 1=calculate $
      long result;
+                                                       // float to get digits                 remove the correction factor as the burner starts later            calculate hours * usage     
      result = Settings.LC_DEVmeter_TTLOil - round( (( (float)Settings.LC_DEVmeter_TTLSec - (Settings.LC_Config_CorrCycleSec * Settings.LC_DEVmeter_TTLCycles)) / 3600) * Settings.LC_Config_OilConsHour ); // float is needed as you want to divide an integer, if not it gets cut
-          
+
      if (Liter) { //we calculate liter
-     return result;
+        return result;
      } 
      else {  //we calculate $
         result = result*Settings.LC_Config_OilPrice100L; // float is needed as you want to divide an integer, if not it gets cut
@@ -298,7 +311,6 @@ long lobo_calcOelstand(boolean Liter){ //0= calculate liter and 1=calculate $
 long lobo_calcOelVerbrauch(long TTLsec, long TTLcycle, boolean R_Type ){ //0= Corrected sec, 1 = liter, 2 = $, 3 = oil left in tank
      long result;
      float KorrSec;
-
     
      KorrSec = round( (float)TTLsec - (Settings.LC_Config_CorrCycleSec * TTLcycle) ); // correct brenner sekunden 
 
@@ -316,20 +328,17 @@ long lobo_calcOelVerbrauch(long TTLsec, long TTLcycle, boolean R_Type ){ //0= Co
      }; // just in case something went wrong... we never go below 0     
 return result;     
 }
-
-//lobocobra end
  
-void ShowBrennerPos(byte relay_i, uint8_t type_i) { 
+void ShowBrennerStats(byte relay_i, uint8_t type_i) { 
   long heute_verbrauch =   lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[0], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0] ,1);
   long gestern_verbrauch = (lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1))- heute_verbrauch;
   char buffer[2][10]; // Arduino does not support %f, so we have to use dtostrf
-     
-
+ 
   snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("%s,{\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%s,\"%s\":%s}}"), 
         mqtt_data,
         D_JSON_LC_Device_SecTTL, Settings.LC_DEVmeter_TTLSec - round(Settings.LC_DEVmeter_TTLCycles*Settings.LC_Config_CorrCycleSec),  //we want to show the corrected time
         D_JSON_LC_Device_Cycle, Settings.LC_DEVmeter_TTLCycles,
-        D_JSON_Brenner_OelstandL, lobo_calcOelstand(1),
+        D_JSON_Brenner_OelstandL, BrennerOelCapTempCorr(lobo_calcOelstand(true),false), //we only correct the Liter Capacity, cost is per oil at 15°
         D_JSON_Brenner_OelstandFr, lobo_calcOelstand(0),
         D_JSON_OelVerbLheute,    heute_verbrauch,
         D_JSON_OelVerbLgestern,  gestern_verbrauch,
@@ -337,7 +346,6 @@ void ShowBrennerPos(byte relay_i, uint8_t type_i) {
         D_JSON_LperH_yesterday,  dtostrf( (float)gestern_verbrauch/24 ,7,2,buffer[1])        
   );    
 }
-
 
 /*********************************************************************************************\
    Interface
@@ -353,7 +361,7 @@ boolean Xdrv92(byte function){
         BrennerInit();
         break;
       case FUNC_JSON_APPEND:
-        ShowBrennerPos(1,2); //variables are not used in brenner... i kept it for future plans
+        ShowBrennerStats(1,2); //variables are not used in brenner... i kept it for future plans
         break;
       case FUNC_COMMAND:
         result = MqttBrennerCommand();

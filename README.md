@@ -35,7 +35,34 @@ Next steps
 I will continue to improve the code and am ready to adapt it, if your requirement is of use for others as well.
 => My plan is to extend it so that I can measure how much water I use in my garden, while the pumps are running.
 
+**Brenner**  
+To activate it, you must : set (Setoption79 =1)  
+The aim of this mod is to know how much Oil you have left for your heating and how long the BRENNER Cycles are. It shows you also how much money you used for your heating.
 
+In order to use the Brenner you must do the following:
+
+1) Connect a POW and load the BRENNER FW
+2) Setoption79 1                 // to activate the Brenner functionallity
+3) BRENNERoeltemp xx.xx		 // measure the temparature of your oil
+4) BRENNERoelmaxcapacity,BRENNERoelmincapacity
+5) BRENNERoelstand xxx           // measure the Ltr of oil in your tank add it
+6) POWERhigh    		 // define how much WATT your BRENNER uses when it starts burning oil
+7) POWERlow			 // define how low the WATT must drop before you stop counting seconds
+8) BRENNERfalseAlertSec		 // define how long a cycle must be ON before it is counted (eliminate peaks of POW, I use 30 sec)
+9) SET BRENNERoelprice100L, BRENNERPowerPrice1kwh,
+10) Set BrennerCorrCycleSec   	  // How long do you wait before you cound BRENNER Sec? My Brenner needs 12 sec before he starts
+
+**Setup Temperature adjustment**
+If you do not want this, set the BRENNERoeltemp to 0° or 15°
+=> If you want it you need a NODE-RED tranformation as follows:
+[{"id":"45fc82af.8561bc","type":"tab","label":"SONOFF BRENNER","disabled":false,"info":"Brenner needs 2 SONOFF\n1) near the tank to get the temperature\n2) POW to detect when it runs\n\nFunction\n1) listen to MQTT for new TEMPERATURES\n2) extract temperature of OIL\n3) change per MQTT the temp of the POW"},{"id":"deae26e4.33a808","type":"mqtt in","z":"45fc82af.8561bc","name":"Transform tele Temp of Heizöl to BRENNER","topic":"tele/ug_tank_lichttemp/SENSOR","qos":"0","broker":"24f4e14d.51f09e","x":210,"y":100,"wires":[["f8427eee.3235f","8d2c2935.1cbce8"]]},{"id":"f8427eee.3235f","type":"json","z":"45fc82af.8561bc","name":"Convert String to JSON","property":"payload","action":"","pretty":true,"x":530,"y":100,"wires":[["5f6c488d.cd1508"]]},{"id":"5f6c488d.cd1508","type":"function","z":"45fc82af.8561bc","name":"Extract Temperature","func":"//put here the SONOFF CMND path of the device you want to set the temp\n//msg.topic=\"cmnd/s_ug_heizung_brenner/brenneroeltemp\";\nmsg.topic=\"cmnd/sonoff/brenneroeltemp\";\nmsg.payload=msg.payload.DS18S20.Temperature;\nreturn msg;\n\n\n// working other solutions\n//return {payload:msg.payload.DS18S20.Temperature}; // worked also","outputs":1,"noerr":0,"x":780,"y":100,"wires":[["4634b1c9.498db"]]},{"id":"4634b1c9.498db","type":"mqtt out","z":"45fc82af.8561bc","name":"send mqtt","topic":"","qos":"","retain":"","broker":"24f4e14d.51f09e","x":980,"y":100,"wires":[]},{"id":"8d2c2935.1cbce8","type":"debug","z":"45fc82af.8561bc","name":"","active":true,"tosidebar":true,"console":false,"tostatus":false,"complete":"false","x":970,"y":180,"wires":[]},{"id":"24f4e14d.51f09e","type":"mqtt-broker","z":"","name":"OpenhabMQTT","broker":"localhost","port":"1883","clientid":"","usetls":false,"compatmode":false,"keepalive":"60","cleansession":true,"birthTopic":"","birthQos":"0","birthPayload":"","closeTopic":"","closeQos":"0","closePayload":"","willTopic":"","willQos":"0","willPayload":""}]
+=> Of coursse you need to adapt the names
+
+
+** Special commands:**
+BRENNERreset -99		// reset all values
+BRENNERreset -1			// reset only history
+BrennerOelstand -1		// recall what is the last 0 point, usually when you bought oil and added oil
 
 
 ## Sonoff-Tasmota

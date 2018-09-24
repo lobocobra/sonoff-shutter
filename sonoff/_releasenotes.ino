@@ -35,17 +35,17 @@
  * - POWERlow                  seconds continue to be counted till we go below this limit
  * - BRENNERttl                without paramater it gives you how many SEC your devices worked, keep it in sync with when you last time manually updated oil tank !!! if not in sync your calculation how much is left, is wrong
  * - BRENNERcycle              without paramater it gives you how many cycles you had, keep it in sync with when you last time manually updated oil tank
- * - BRENNERoelstand           with paramaeter -1: report oil level, how it was at brennerttl 0 and cycle 0
+ * - BRENNERoelstand           with paramaeter -1: report oil level, how it was at brennerttl 0 and cycle 0 !!! BUT THE VOLUME AT 15° corrected, as you pay at this temperature
  *                             with a paramater >0 :  corrects the starting oli level when BrennerSec was at 0 and cycles was at 0 // NEVER change this value to current oil level, whithout resetting cycles and ttlsec
  *                             without parameter: calculate oil level
- * - BRENNERoeltemp            not used, will be used to calculate the oil at 15° // will need temp surveillance of oil tank
- * - BRENNERoelverb1H          enter how much oil your device is using in 1h in continous burning mode 
+ * - BRENNERoeltemp            inline the code calculates the vaolume at 15° if the reported temp is between >=10° -<=40°
+ * - BRENNERoelverb1H          enter how much oil your device is using in 1h in continous burning mode, TEMP of oil is not respected as it burns always at same temp 
  * - BRENNERoelmaxcapacity     not used, will in future give the info how many % is used
  * - BRENNERoelmincapacity     not used, will in future shut down the device, when the oiltank is empty to prevent issues with dirty oil 
  * - BrennerCorrCycleSec       after each cycle is done, reduce from BRENNERttl, in my case the device starts up 11sec before burning starts (0 - 600)
  * - BRENNERoelprice100L       price of 100L oil to have price per cent
  * - BRENNERPowerPrice1kwh     price of 1KWh power 
- * - BRENNERfalseAlerSec       insruct code to ignore any cycle with less than this number of sec, can improve highly quality of poor POW measurement. If you know that a cycle is at least 30sec, put it to 30
+ * - BRENNERfalseAlertSec      insruct code to ignore any cycle with less than this number of sec, can improve highly quality of poor POW measurement. If you know that a cycle is at least 30sec, put it to 30
  * - BRENNERreset              reset all variables to 0 ! yesterday and today are then gone
  *                             -99 to reset all
  *                             -1 to reset only history
