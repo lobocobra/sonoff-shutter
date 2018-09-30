@@ -36,6 +36,7 @@
 #define D_CMND_BRENNERPowerPrice1kwh  "BRENNERPowerPrice1kwh"
 #define D_CMND_BRENNERfalseAlertSec   "BRENNERFalseAlertSec"
 #define D_CMND_BRENNERreset           "BRENNERreset"            // command to reset history data of today and yesterday, also brennerttl and cycle, but not config numbers
+#define D_CMND_SimulateMidnight       "SimulateMidnight"        // delete this command after all works  
 
 // MQTT Ausgabe
 #define D_JSON_SekperCycle_last       "B_SecCycle_last"         //
@@ -54,8 +55,8 @@
 /*********************************************************************************************\
    Variables
 \*********************************************************************************************/
-enum BrennerCommands {CMND_BRENNERttl, CMND_BRENNERcycle, CMND_BRENNERoelstand, CMND_BRENNERoeltemp, CMND_BRENNERoelverb1H, CMND_BRENNERoelmaxcapacity, CMND_BRENNERoelmincapacity, CMND_BRENNERcorrcyclesec, CMND_BRENNERoelprice100L, CMND_BRENNERPowerPrice1kwh, CMND_BRENNERfalseAlertSec, CMND_BRENNERreset };
-const char kBrennerCommands[] PROGMEM = D_CMND_BRENNERttl "|" D_CMND_BRENNERcycle  "|" D_CMND_BRENNERoelstand "|" D_CMND_BRENNERoeltemp "|" D_CMND_BRENNERoelverb1H "|" D_CMND_BRENNERoelmaxcapacity "|" D_CMND_BRENNERoelmincapacity  "|" D_CMND_BRENNERcorrcyclesec "|" D_CMND_BRENNERoelprice100L "|" D_CMND_BRENNERPowerPrice1kwh "|" D_CMND_BRENNERfalseAlertSec "|" D_CMND_BRENNERreset;
+enum BrennerCommands {CMND_BRENNERttl, CMND_BRENNERcycle, CMND_BRENNERoelstand, CMND_BRENNERoeltemp, CMND_BRENNERoelverb1H, CMND_BRENNERoelmaxcapacity, CMND_BRENNERoelmincapacity, CMND_BRENNERcorrcyclesec, CMND_BRENNERoelprice100L, CMND_BRENNERPowerPrice1kwh, CMND_BRENNERfalseAlertSec, CMND_BRENNERreset, CMND_SimulateMidnight };
+const char kBrennerCommands[] PROGMEM = D_CMND_BRENNERttl "|" D_CMND_BRENNERcycle  "|" D_CMND_BRENNERoelstand "|" D_CMND_BRENNERoeltemp "|" D_CMND_BRENNERoelverb1H "|" D_CMND_BRENNERoelmaxcapacity "|" D_CMND_BRENNERoelmincapacity  "|" D_CMND_BRENNERcorrcyclesec "|" D_CMND_BRENNERoelprice100L "|" D_CMND_BRENNERPowerPrice1kwh "|" D_CMND_BRENNERfalseAlertSec "|" D_CMND_BRENNERreset "|" D_CMND_SimulateMidnight;
 // Global variables
 boolean LC_MS100 = false;
 
@@ -101,11 +102,11 @@ void BrennerReset(long i) { //reset all variables to 0, you need to send -1 in o
 void BrennerMidnight(byte i){
       if (RtcTime.valid) {
       if (LocalTime() == Midnight() || i) {
-        Serial.println("Midnight manually started");
         // put here the code to 0 the day
         // TTL sec reset
         Settings.LC_DEVhist_Sec_Period[1] = Settings.LC_DEVmeter_TTLSec      - Settings.LC_DEVhist_Sec_Period[0];      // yesterday can not increase so we save the value
         Settings.LC_DEVhist_Sec_Period[0] = Settings.LC_DEVmeter_TTLSec;                                             // save timestamp of uncorrected value
+
         // TTL cycles reset
         Settings.LC_DEVhist_Cycle_Period[1] = Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0];  // yesterday can not increase so we save the value
         Settings.LC_DEVhist_Cycle_Period[0] = Settings.LC_DEVmeter_TTLCycles;                                        // save timestamp of uncorrected value
@@ -214,9 +215,12 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
     else //we calculate the value
         snprintf_P(mqtt_data, sizeof(mqtt_data), S_JSON_COMMAND_LVALUE, command, BrennerOelCapTempCorr( lobo_calcOelstand(true),false)); // print the  oil in the tank but the real volume
   }
-  else if (CMND_BRENNERoeltemp == command_code) { // not yet used 
+  else if ( CMND_SimulateMidnight == command_code) { // not yet used 
     //!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! REMOVE WHEN ALL IS TESTET
-    //BrennerMidnight(1);
+    BrennerMidnight(1);
+    snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s"), command, " Midnight was simulated " );
+  }
+  else if (CMND_BRENNERoeltemp == command_code) { // not yet used 
     if (payload_double >= 0) { // temp in house can not be below 0
       Settings.LC_DEVmeter_OilTemp = payload_double;
      }
@@ -270,7 +274,7 @@ boolean MqttBrennerCommand() //react ont received MQTT commands
   }
     else if (CMND_BRENNERreset == command_code) {
     if (payload < 0 && payload !=-99) { BrennerReset(payload); snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s %d"), command, "BrennerReset executed with code ", payload );} // only reset on -1 or -999
-    else snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s %d"), command, "-1 to activate reset" );
+    else snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("%s %s"), command, "-1 reset history, -999 resets all" );
   }
     else { // no response for known command was defined, so we handle it as unknown
     serviced = false;  // Unknown command
@@ -331,8 +335,16 @@ return result;
  
 void ShowBrennerStats(byte relay_i, uint8_t type_i) { 
   long heute_verbrauch =   lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[0], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0] ,1);
-  long gestern_verbrauch = (lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1))- heute_verbrauch;
+  //long gestern_verbrauch = (lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1))- heute_verbrauch; //was wrong as we save for yesterday the result and not the timestamp, delete it if we are sure now it works
+  long gestern_verbrauch = (lobo_calcOelVerbrauch(Settings.LC_DEVhist_Sec_Period[1],Settings.LC_DEVhist_Cycle_Period[1] ,1)); // WE had a bug here... I save the total, so another formula is needed or I rewrite all
   char buffer[2][10]; // Arduino does not support %f, so we have to use dtostrf
+
+// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "1) Settings.LC_DEVmeter_TTLSec %d"), Settings.LC_DEVmeter_TTLSec); AddLog(LOG_LEVEL_DEBUG);       
+// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "2) Settings.LC_DEVhist_Sec_Period[0] %d"), Settings.LC_DEVhist_Sec_Period[0]); AddLog(LOG_LEVEL_DEBUG);       
+// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "3) Settings.LC_DEVmeter_TTLCycles %d"), Settings.LC_DEVmeter_TTLCycles); AddLog(LOG_LEVEL_DEBUG);       
+// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "4) Settings.LC_DEVhist_Cycle_Period[0] %d"), Settings.LC_DEVhist_Cycle_Period[0]); AddLog(LOG_LEVEL_DEBUG);       
+// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "5) Settings.LC_DEVhist_Sec_Period[1] %d"), Settings.LC_DEVhist_Sec_Period[1]); AddLog(LOG_LEVEL_DEBUG);       
+// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "6) Settings.LC_DEVhist_Cycle_Period[1] %d"), Settings.LC_DEVhist_Cycle_Period[1]); AddLog(LOG_LEVEL_DEBUG);       
  
   snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("%s,{\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%s,\"%s\":%s}}"), 
         mqtt_data,
@@ -342,7 +354,7 @@ void ShowBrennerStats(byte relay_i, uint8_t type_i) {
         D_JSON_Brenner_OelstandFr, lobo_calcOelstand(0),
         D_JSON_OelVerbLheute,    heute_verbrauch,
         D_JSON_OelVerbLgestern,  gestern_verbrauch,
-        D_JSON_LperH_today,      dtostrf( (float)heute_verbrauch/((float)GetMinutesPastMidnight()/60) ,7,2,buffer[0]) ,
+        D_JSON_LperH_today,      (GetMinutesPastMidnight() > 59) ? dtostrf( (float)heute_verbrauch/((float)GetMinutesPastMidnight()/60) ,7,2,buffer[0]) : dtostrf( (float)heute_verbrauch/1 ,7,2,buffer[0])  , // eliminate error the first 59 min after midnight, and we get div/0 first minute and impossible values the first 59 min
         D_JSON_LperH_yesterday,  dtostrf( (float)gestern_verbrauch/24 ,7,2,buffer[1])        
   );    
 }

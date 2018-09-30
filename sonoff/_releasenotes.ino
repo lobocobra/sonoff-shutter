@@ -47,7 +47,7 @@
  * - BRENNERPowerPrice1kwh     price of 1KWh power 
  * - BRENNERfalseAlertSec      insruct code to ignore any cycle with less than this number of sec, can improve highly quality of poor POW measurement. If you know that a cycle is at least 30sec, put it to 30
  * - BRENNERreset              reset all variables to 0 ! yesterday and today are then gone
- *                             -99 to reset all
+ *                             -999 to reset all
  *                             -1 to reset only history
 */
 /*
