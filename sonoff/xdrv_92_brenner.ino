@@ -38,19 +38,20 @@
 #define D_CMND_BRENNERreset           "BRENNERreset"            // command to reset history data of today and yesterday, also brennerttl and cycle, but not config numbers
 #define D_CMND_SimulateMidnight       "SimulateMidnight"        // delete this command after all works  
 
-// MQTT Ausgabe
+// MQTT Ausgabe !!! no backslach or space
 #define D_JSON_SekperCycle_last       "B_SecCycle_last"         //
 #define D_JSON_SEKperCycle_24h        "B_SekCycle_24h"          // 
-#define D_JSON_SEKperCycle_M1         "B_SekCycle_Day-1"        // 
+#define D_JSON_SEKperCycle_M1         "B_SekCycle_Day1"        // 
 #define D_JSON_SEKperCycle_avg        "B_SekCycle_avg"          // 
-#define D_JSON_Brenner_OelstandL      "BrennerOelstandL"         // 
-#define D_JSON_Brenner_OelstandFr     "BrennerOelstandFr"        // 
-#define D_JSON_OelVerbLheute          "BrennerOelVerbLheute"     // 
-#define D_JSON_OelVerbLgestern        "BrennerOelVerbLgestern"   // 
-#define D_JSON_LC_Device_SecTTL       "BrennerSekTTL"            // 
-#define D_JSON_LC_Device_Cycle        "BrennerCycles"            //
-#define D_JSON_LperH_today            "avg L/H heute"
-#define D_JSON_LperH_yesterday        "avg L/H gestern"
+#define D_JSON_Brenner_OelstandL      "BrennerOelstandL"        // 
+#define D_JSON_Brenner_OelstandFr     "BrennerOelstandFr"       // 
+#define D_JSON_OelVerbLheute          "BrennerOelVerbLheute"    // 
+#define D_JSON_OelVerbLgestern        "BrennerOelVerbLgestern"  // 
+#define D_JSON_LC_Device_SecTTL       "BrennerSekTTL"           // 
+#define D_JSON_LC_Device_Cycle        "BrennerCycles"           //
+#define D_JSON_LperH_today            "avgL_H_heute"
+#define D_JSON_LperH_yesterday        "avgL_H_gestern"
+#define D_RSLT_BRENNER                "BRENNER"                 // identify new TELE and STAT to prevent issues with OPENHAB MQTT
 
 /*********************************************************************************************\
    Variables
@@ -150,13 +151,14 @@ long seconds[2]{0L,0L};
                             // first 2 days after reboot we could have wrong numbers
                           
                             //send mqtt message
-                            snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d}"), 
+                            snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("{\"" D_JSON_TIME "\":\"%s\",\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d}}"), 
+                            GetDateAndTime(DT_LOCAL).c_str(),
                             D_JSON_SekperCycle_last, round((float)LC_DEV_ONsec-Settings.LC_Config_CorrCycleSec),
                             D_JSON_SEKperCycle_24h,  round((float)seconds[0]/cycles[0]),
                             D_JSON_SEKperCycle_M1,   round((float)seconds[1]/cycles[1]),
                             D_JSON_SEKperCycle_avg,  round((float)(Settings.LC_DEVmeter_TTLSec - round(Settings.LC_DEVmeter_TTLCycles*Settings.LC_Config_CorrCycleSec)) / Settings.LC_DEVmeter_TTLCycles));
-                            
-                            MqttPublishPrefixTopic_P(STAT, PSTR(D_RSLT_STATE), Settings.flag.mqtt_sensor_retain);
+
+                            MqttPublishPrefixTopic_P(STAT, PSTR(D_RSLT_BRENNER), Settings.flag.mqtt_sensor_retain); // ensure the message is published, if not it will not be
                       }
                     }
      LC_DEV_ONsec =0;              // prevent POWERHIGH peaks, as we are on powerlow, powerhigh is 0 
@@ -333,21 +335,18 @@ long lobo_calcOelVerbrauch(long TTLsec, long TTLcycle, boolean R_Type ){ //0= Co
 return result;     
 }
  
-void ShowBrennerStats(byte relay_i, uint8_t type_i) { 
+void ShowBrennerStats() { 
   long heute_verbrauch =   lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[0], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[0] ,1);
   //long gestern_verbrauch = (lobo_calcOelVerbrauch(Settings.LC_DEVmeter_TTLSec - Settings.LC_DEVhist_Sec_Period[1], Settings.LC_DEVmeter_TTLCycles - Settings.LC_DEVhist_Cycle_Period[1] ,1))- heute_verbrauch; //was wrong as we save for yesterday the result and not the timestamp, delete it if we are sure now it works
   long gestern_verbrauch = (lobo_calcOelVerbrauch(Settings.LC_DEVhist_Sec_Period[1],Settings.LC_DEVhist_Cycle_Period[1] ,1)); // WE had a bug here... I save the total, so another formula is needed or I rewrite all
   char buffer[2][10]; // Arduino does not support %f, so we have to use dtostrf
 
 // snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "1) Settings.LC_DEVmeter_TTLSec %d"), Settings.LC_DEVmeter_TTLSec); AddLog(LOG_LEVEL_DEBUG);       
-// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "2) Settings.LC_DEVhist_Sec_Period[0] %d"), Settings.LC_DEVhist_Sec_Period[0]); AddLog(LOG_LEVEL_DEBUG);       
-// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "3) Settings.LC_DEVmeter_TTLCycles %d"), Settings.LC_DEVmeter_TTLCycles); AddLog(LOG_LEVEL_DEBUG);       
-// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "4) Settings.LC_DEVhist_Cycle_Period[0] %d"), Settings.LC_DEVhist_Cycle_Period[0]); AddLog(LOG_LEVEL_DEBUG);       
-// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "5) Settings.LC_DEVhist_Sec_Period[1] %d"), Settings.LC_DEVhist_Sec_Period[1]); AddLog(LOG_LEVEL_DEBUG);       
-// snprintf_P(log_data, sizeof(log_data), PSTR(D_LOG_LOG "6) Settings.LC_DEVhist_Cycle_Period[1] %d"), Settings.LC_DEVhist_Cycle_Period[1]); AddLog(LOG_LEVEL_DEBUG);       
- 
-  snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("%s,{\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%s,\"%s\":%s}}"), 
-        mqtt_data,
+
+
+  //03:07:18 MQT: tele/s_ug_heizung_brenner_pow2/SENSOR = {"Time":"2018-10-02T03:07:18","BRENNER":{"BrennerSekTTL":356632,"BrennerCycles":1279,"BrennerOelstandL":3947,"BrennerOelstandFr":3088,"BrennerOelVerbLheute":1,"BrennerOelVerbLgestern":2,"avgL_H_heute":   0.32,"avgL_H_gestern":   0.08}}
+  snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("{\"" D_JSON_TIME "\":\"%s\",\"BRENNER\":{\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%d,\"%s\":%s,\"%s\":%s}}"), 
+        GetDateAndTime(DT_LOCAL).c_str(),
         D_JSON_LC_Device_SecTTL, Settings.LC_DEVmeter_TTLSec - round(Settings.LC_DEVmeter_TTLCycles*Settings.LC_Config_CorrCycleSec),  //we want to show the corrected time
         D_JSON_LC_Device_Cycle, Settings.LC_DEVmeter_TTLCycles,
         D_JSON_Brenner_OelstandL, BrennerOelCapTempCorr(lobo_calcOelstand(true),false), //we only correct the Liter Capacity, cost is per oil at 15°
@@ -356,7 +355,15 @@ void ShowBrennerStats(byte relay_i, uint8_t type_i) {
         D_JSON_OelVerbLgestern,  gestern_verbrauch,
         D_JSON_LperH_today,      (GetMinutesPastMidnight() > 59) ? dtostrf( (float)heute_verbrauch/((float)GetMinutesPastMidnight()/60) ,7,2,buffer[0]) : dtostrf( (float)heute_verbrauch/1 ,7,2,buffer[0])  , // eliminate error the first 59 min after midnight, and we get div/0 first minute and impossible values the first 59 min
         D_JSON_LperH_yesterday,  dtostrf( (float)gestern_verbrauch/24 ,7,2,buffer[1])        
-  );    
+  );    MqttPublishPrefixTopic_P(TELE, PSTR(D_RSLT_BRENNER), Settings.flag.mqtt_sensor_retain); // ensure the message with right prefix !bug, we still have it 2x
+
+        // copy the Energy MQTT to prevent that we have 2x Brenner 1x with BRENNER 1x with SENSOR
+        mqtt_data[0] = '\0'; // set Mqtt to 0, bug of 2x same MQTT, I solve it by sending energy data to avoid issues within Openhab MQTT log error
+        snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("{\"" D_JSON_TIME "\":\"%s\""), 
+        GetDateAndTime(DT_LOCAL).c_str()); 
+        EnergyShow(1);
+        snprintf_P(mqtt_data, sizeof(mqtt_data),PSTR("%s}"),mqtt_data); 
+        // print the fake Energy Message, by returning, it will be print
 }
 
 /*********************************************************************************************\
@@ -373,7 +380,7 @@ boolean Xdrv92(byte function){
         BrennerInit();
         break;
       case FUNC_JSON_APPEND:
-        ShowBrennerStats(1,2); //variables are not used in brenner... i kept it for future plans
+        ShowBrennerStats(); //variables are not used in brenner... i kept it for future plans
         break;
       case FUNC_COMMAND:
         result = MqttBrennerCommand();
