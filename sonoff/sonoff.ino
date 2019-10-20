@@ -1,3 +1,4 @@
+//lobocobra modifications in this tab
 /*
   sonoff.ino - Sonoff-Tasmota firmware for iTead Sonoff, Wemos and NodeMCU hardware
 
@@ -164,6 +165,9 @@ char serial_in_buffer[INPUT_BUFFER_SIZE];   // Receive buffer
 char mqtt_data[MESSZ];                      // MQTT publish buffer and web page ajax buffer
 char log_data[LOGSZ];                       // Logging
 char web_log[WEB_LOG_SIZE] = {'\0'};        // Web log buffer
+// lobocobra start
+//int lobotestpulsetime[2] = {0,0};
+// lobocobra end
 #ifdef SUPPORT_IF_STATEMENT
   #include <LinkedList.h>
   LinkedList<String> backlog;                // Command backlog implemented with LinkedList
@@ -600,6 +604,10 @@ void ExecuteCommandPower(uint32_t device, uint32_t state, uint32_t source)
       }
       interlock_mutex = false;
     }
+// lobocobra start - update the position a button was pressed
+  // call the code to update the position
+  if (Settings.flag3.shuttermode) if (!ExecutePowerUpdateShutterPos(device)) state = POWER_OFF; // we do not start the movement if we are out boundaries, false return mean, do not start
+// lobocobra end
 
     switch (state) {
     case POWER_OFF: {
@@ -746,8 +754,11 @@ bool MqttShowSensor(void)
   }
   XsnsCall(FUNC_JSON_APPEND);
 
-#ifdef USE_SCRIPT_JSON_EXPORT
+// lobocobra start - call joson append also for xdrv
   XdrvCall(FUNC_JSON_APPEND);
+// lobocobra end 
+#ifdef USE_SCRIPT_JSON_EXPORT
+//  XdrvCall(FUNC_JSON_APPEND);
 #endif
 
   bool json_data_available = (strlen(mqtt_data) - json_data_start);

@@ -1,3 +1,4 @@
+//lobocobra modifications in this tab
 /*
   settings.h - setting variables for Sonoff-Tasmota
 
@@ -93,7 +94,9 @@ typedef union {                            // Restricted by MISRA-C Rule 18.4 bu
     uint32_t spare27 : 1;
     uint32_t spare28 : 1;
     uint32_t spare29 : 1;
-    uint32_t spare30 : 1;
+// lobocobra start - define shuttermode
+    uint32_t shuttermode : 1;
+// lobocobra end 
     uint32_t spare31 : 1;
   };
 } SysBitfield3;
@@ -369,6 +372,15 @@ struct SYSCFG {
   unsigned long weight_calibration;        // 7C4
   unsigned long energy_frequency_calibration;  // 7C8 also used by HX711 to save last weight
   uint16_t      web_refresh;               // 7CC
+//lobocobra start - define variables globally
+  int          shutterPosMinDeciSec[2];           // position of shutter when it is up (minimum position)   // 0 for 1/2 and 1 for 3/4
+  int          shutterPosMaxDeciSec[2];           // position of shutter when it is down (maximum position) // 0 for 1/2 and 1 for 3/4
+  int          shutterPosCurrentDeciSec[2];       // current position of shutter in second                  // 0 for 1/2 and 1 for 3/4
+  int          shutterStartDelayDeciSec[2];       // how much time the shutter motor needs to start to move Up&Down (latency) // 0 for 1/2   and 1 for 3/4
+  int          shutterLagUpwardsDeciSec[2];       // how much time the shutter need to start to go Down (latency) // 0 is for 1/2   and 1 for  3/4
+  int          shutterStdPulseTDsec[2];           // std pulsetime to be reset to, after shutter were used
+  long         shutterRelayOnDsec[4];             // count decisec per relay
+//lobocobra end
   char          mems[MAX_RULE_MEMS][10];   // 7CE
   char          rules[MAX_RULE_SETS][MAX_RULE_SIZE];  // 800 uses 512 bytes in v5.12.0m, 3 x 512 bytes in v5.14.0b
   TuyaFnidDpidMap tuya_fnid_map[MAX_TUYA_FUNCTIONS];  // E00    32 bytes

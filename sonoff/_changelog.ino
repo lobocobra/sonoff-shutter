@@ -1,3 +1,17 @@
+//lobocobra modifications in this tab
+/*6.1.1k lobocobra added sutter & split functionalliy /driver
+ * Shutter adaptation of lobocobra you can use following commands // enter DeciSec = Sec*10
+ * - ShutMinDSec1/2         (min position to move to)
+ * - shutMaxDSec1/2         (max position to move to)
+ * - shutPosDSec1/2         (current position in Dsec)
+ * - shutGoPercent1/2       (1-100%, current or move to)
+ * - shutStartDelayDSec1/2  (time your motor needs to do a movement)
+ * - shutLagUpwardsDSec1/2  (additional time your motor needs to go upwards)
+ * - shutReset1/2           (standard pulsetime to be set afer any movements)
+ * - shutHelp               (list all commands)
+ * - setoption 80 enable Shutter function
+ * - weblog 4               show data
+  */
 /*********************************************************************************************\
  * 6.6.0.14 20190925
  * Change command Tariffx to allow time entries like 23 (hours), 1320 (minutes) or 23:00. NOTE: As this is development branch previous tariffs are lost! (#6488)
