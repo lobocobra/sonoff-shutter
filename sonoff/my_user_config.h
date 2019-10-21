@@ -318,7 +318,7 @@
 #define USE_COUNTER                              // Enable inputs as counter (+0k8 code)
 
 // -- Internal Analog input -----------------------
-#define USE_ADC_VCC                              // Display Vcc in Power status. Disable for use as Analog input on selected devices
+//#define USE_ADC_VCC                              // Display Vcc in Power status. Disable for use as Analog input on selected devices
 
 // -- One wire sensors ----------------------------
 #define USE_DS18x20                              // Optional for more than one DS18x20 sensors with id sort, single scan and read retry (+1k3 code)
