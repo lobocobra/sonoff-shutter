@@ -19,7 +19,7 @@
 
 #ifndef _SONOFF_VERSION_H_
 #define _SONOFF_VERSION_H_
-
+//lobocobra 0C=12 => 21.10.2019
 const uint32_t VERSION = 0x0606000E;
 
 #endif  // _SONOFF_VERSION_H_

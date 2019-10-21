@@ -276,8 +276,7 @@ boolean MqttShutterCommand()
 void ShowShutterPos(byte shutter) {
 
  //Shutter0: Position:% -15000 Position Sec: 150
- // FIX IT, not working currently
- //snprintf_P(log_data, sizeof(log_data), PSTR("Shutter%d: Position%% %d Position Sec: %d "), shutter,round((float)Settings.shutterPosCurrentDeciSec[shutter-1]/ Settings.shutterPosMaxDeciSec[shutter-1]*100) , Settings.shutterPosCurrentDeciSec[shutter-1]);
+ snprintf_P(log_data, sizeof(log_data), PSTR("Shutter%d: Position%% %d Position Sec: %d "), shutter,round((float)Settings.shutterPosCurrentDeciSec[shutter-1]/ Settings.shutterPosMaxDeciSec[shutter-1]*100) , Settings.shutterPosCurrentDeciSec[shutter-1]);
  AddLog(LOG_LEVEL_INFO);
 
  

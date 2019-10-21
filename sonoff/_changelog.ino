@@ -1,5 +1,5 @@
 //lobocobra modifications in this tab
-/*6.1.1k lobocobra added sutter & split functionalliy /driver
+/*6.6.0.14.12 lobocobra added sutter & split functionalliy /driver
  * Shutter adaptation of lobocobra you can use following commands // enter DeciSec = Sec*10
  * - ShutMinDSec1/2         (min position to move to)
  * - shutMaxDSec1/2         (max position to move to)
