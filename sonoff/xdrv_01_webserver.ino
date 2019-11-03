@@ -1,3 +1,4 @@
+// lobocobra modifications
 /*
   xdrv_01_webserver.ino - webserver for Sonoff-Tasmota
 
@@ -475,12 +476,13 @@ const char HTTP_TABLE100[] PROGMEM =
 const char HTTP_COUNTER[] PROGMEM =
   "<br><div id='t' style='text-align:center;'></div>";
 
+//lobocobra start
 const char HTTP_END[] PROGMEM =
-  "<div style='text-align:right;font-size:11px;'><hr/><a href='https://bit.ly/tasmota' target='_blank' style='color:#aaa;'>Sonoff-Tasmota %s " D_BY " Theo Arends</a></div>"
+  "<div style='text-align:right;font-size:11px;'><hr/><a href='https://bit.ly/tasmota' target='_blank' style='color:#aaa;'>Sonoff-Tasmota %s " D_BY " Theo Arends, Shut Mod Lobo</a></div>"
   "</div>"
   "</body>"
   "</html>";
-
+//lobocobra end
 const char HTTP_DEVICE_CONTROL[] PROGMEM = "<td style='width:%d%%'><button onclick='la(\"&o=%d\");'>%s%s</button></td>";  // ?o is related to WebGetArg("o", tmp, sizeof(tmp));
 const char HTTP_DEVICE_STATE[] PROGMEM = "<td style='width:%d{c}%s;font-size:%dpx'>%s</div></td>";  // {c} = %'><div style='text-align:center;font-weight:
 
@@ -1810,7 +1812,6 @@ void HandleInformation(void)
   char stopic[TOPSZ];
 
   int freeMem = ESP.getFreeHeap();
-
   WSContentStart_P(S_INFORMATION);
   // Save 1k of code space replacing table html with javascript replace codes
   // }1 = </td></tr><tr><th>
@@ -1818,6 +1819,9 @@ void HandleInformation(void)
   WSContentSend_P(HTTP_SCRIPT_INFO_BEGIN);
   WSContentSend_P(PSTR("<table style='width:100%%'><tr><th>"));
   WSContentSend_P(PSTR(D_PROGRAM_VERSION "}2%s%s"), my_version, my_image);
+  // lobocobra start
+  WSContentSend_P(PSTR("}1 Lobo Shutter Mod }2%d"), LOBOVersion);
+  // lobocobra end
   WSContentSend_P(PSTR("}1" D_BUILD_DATE_AND_TIME "}2%s"), GetBuildDateAndTime().c_str());
   WSContentSend_P(PSTR("}1" D_CORE_AND_SDK_VERSION "}2" ARDUINO_ESP8266_RELEASE "/%s"), ESP.getSdkVersion());
   WSContentSend_P(PSTR("}1" D_UPTIME "}2%s"), GetUptime().c_str());
