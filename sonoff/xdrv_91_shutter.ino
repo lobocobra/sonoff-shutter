@@ -273,11 +273,13 @@ boolean MqttShutterCommand()
 }
 
 
-void ShowShutterPos(byte shutter) {
-
- //Shutter0: Position:% -15000 Position Sec: 150
- snprintf_P(log_data, sizeof(log_data), PSTR("Shutter%d: Position%% %d Position Sec: %d "), shutter,round((float)Settings.shutterPosCurrentDeciSec[shutter-1]/ Settings.shutterPosMaxDeciSec[shutter-1]*100) , Settings.shutterPosCurrentDeciSec[shutter-1]);
- AddLog(LOG_LEVEL_INFO);
+void ShowShutterPos(byte shutterNR) {
+ //snprintf_P(log_data,  sizeof(log_data) , PSTR("Shutter%d: Position%% %d Position Sec: %d "), shutterNR,round((float)Settings.shutterPosCurrentDeciSec[shutter-1]/ Settings.shutterPosMaxDeciSec[shutterNR-1]*100) , Settings.shutterPosCurrentDeciSec[shutterNR-1]);
+ //AddLog(LOG_LEVEL_INFO);
+ //Shutter0: Position:% 50 Position Sec: 150
+ snprintf_P(mqtt_data, sizeof(mqtt_data), PSTR("Shutter%d: Position%% %d Position Sec: %d "), shutterNR,round((float)Settings.shutterPosCurrentDeciSec[shutterNR-1]/ Settings.shutterPosMaxDeciSec[shutterNR-1]*100) , Settings.shutterPosCurrentDeciSec[shutterNR-1]);
+ MqttPublishPrefixTopic_P(RESULT_OR_TELE, mqtt_data);
+ 
 
  
 }

@@ -69,9 +69,9 @@ const uint8_t MAX_XDRV_DRIVERS = 96;        // Max number of allowed driver driv
 const uint8_t MAX_XSNS_DRIVERS = 96;        // Max number of allowed sensor drivers
 const uint8_t MAX_RULE_MEMS = 5;            // Max number of saved vars
 const uint8_t MAX_RULE_SETS = 3;            // Max number of rule sets of size 512 characters
-//lobocobra test if saving issue is due to too much data
-const uint16_t MAX_RULE_SIZE = 256;         // Max number of characters in rules
-
+// lobocobra with 512, nothing was saved any longer
+const uint16_t MAX_RULE_SIZE = 384;         // Max number of characters in rules
+// lobocobra end
 const uint8_t MAX_HUE_DEVICES = 15;         // Max number of Philips Hue device per emulation
 
 const char MQTT_TOKEN_PREFIX[] PROGMEM = "%prefix%";  // To be substituted by mqtt_prefix[x]
